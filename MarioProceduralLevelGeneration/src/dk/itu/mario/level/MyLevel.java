@@ -16,6 +16,7 @@ public class MyLevel extends Level{
 	 public   int BLOCKS_COINS = 0; // the number of coin blocks
 	 public   int BLOCKS_POWER = 0; // the number of power blocks
 	 public   int COINS = 0; //These are the coins in boxes that Mario collect
+	 private int curFloorHeight;
 
  
 	private static Random levelSeedRandom = new Random();
@@ -31,17 +32,20 @@ public class MyLevel extends Level{
 		public MyLevel(int width, int height)
 	    {
 			super(width, height);
+			curFloorHeight = height;
 	    }
 
 
 		public MyLevel(int width, int height, long seed, int difficulty, int type, GamePlay playerMetrics)
 	    {
 	        this(width, height);
+	        curFloorHeight = height;
 	        creat(seed, difficulty, type);
 	    }
 
 	    public void creat(long seed, int difficulty, int type)
 	    {
+	    	width = 128;
 	    	
 	        this.type = type;
 	        this.difficulty = difficulty;
@@ -51,23 +55,26 @@ public class MyLevel extends Level{
 
 	        //create the start location
 	        int length = 0;
-	        length += buildStraight(0, width, true);
+	        //length += buildStraight(0, width, true);
+	        length += buildFlat(0, width, true);
 	        
 	        //create all of the medium sections
 	        while (length < width - 64)
 	        {
 	            //length += buildZone(length, width - length);
-				length += buildStraight(length, width-length, false);
-				length += buildStraight(length, width-length, false);
-				length += buildHillStraight(length, width-length);
-				length += buildJump(length, width-length);
-				length += buildTubes(length, width-length);
-				length += buildCannons(length, width-length);
+				//length += buildStraight(length, width-length, false);
+				//length += buildStraight(length, width-length, false);
+				//length += buildHillStraight(length, width-length);
+				//length += buildJump(length, width-length);
+				//length += buildTubes(length, width-length);
+				//length += buildCannons(length, width-length);
+	        	//length += buildFlat(length, width-length, true);
+	        	length += buildHillStraight(length, width-length);
 	        }
 	        
 
 	        //set the end piece
-	        int floor = height - 1 - random.nextInt(4);
+	        int floor = height - 1;// - random.nextInt(4);
 
 	        xExit = length + 8;
 	        yExit = floor;
@@ -83,8 +90,6 @@ public class MyLevel extends Level{
 	                }
 	            }
 	        }
-	        
-	        
 	        
 	        if (type == LevelInterface.TYPE_CASTLE || type == LevelInterface.TYPE_UNDERGROUND)
 	        {
@@ -107,11 +112,7 @@ public class MyLevel extends Level{
 	            }
 	        }
 	        
-	        
-
 	        fixWalls();
-	        
-
 	    }
 
 
@@ -210,13 +211,13 @@ public class MyLevel extends Level{
 	        return length;
 	    }
 
-	    private int buildHillStraight(int xo, int maxLength)
+	    private int buildHillStraight(int zoneStart, int maxLength)
 	    {
 	        int length = random.nextInt(10) + 10;
 	        if (length > maxLength) length = maxLength;
 
 	        int floor = height - 1 - random.nextInt(4);
-	        for (int x = xo; x < xo + length; x++)
+	        for (int x = zoneStart; x < zoneStart + length; x++)
 	        {
 	            for (int y = 0; y < height; y++)
 	            {
@@ -227,49 +228,49 @@ public class MyLevel extends Level{
 	            }
 	        }
 
-	        addEnemyLine(xo + 1, xo + length - 1, floor - 1);
+	        addEnemyLine(zoneStart + 1, zoneStart + length - 1, floor - 1);
 
-	        int h = floor;
+	        int hillHeight = floor;
 
 	        boolean keepGoing = true;
 
 	        boolean[] occupied = new boolean[length];
 	        while (keepGoing)
 	        {
-	            h = h - 2 - random.nextInt(3);
+	            hillHeight = hillHeight - 2 - random.nextInt(3);
 
-	            if (h <= 0)
+	            if (hillHeight <= 0)
 	            {
 	                keepGoing = false;
 	            }
 	            else
 	            {
-	                int l = random.nextInt(5) + 3;
-	                int xxo = random.nextInt(length - l - 2) + xo + 1;
+	                int hillWidth = random.nextInt(5) + 3;
+	                int hillStart = random.nextInt(length - hillWidth - 2) + zoneStart + 1;
 
-	                if (occupied[xxo - xo] || occupied[xxo - xo + l] || occupied[xxo - xo - 1] || occupied[xxo - xo + l + 1])
+	                if (occupied[hillStart - zoneStart] || occupied[hillStart - zoneStart + hillWidth] || occupied[hillStart - zoneStart - 1] || occupied[hillStart - zoneStart + hillWidth + 1])
 	                {
 	                    keepGoing = false;
 	                }
 	                else
 	                {
-	                    occupied[xxo - xo] = true;
-	                    occupied[xxo - xo + l] = true;
-	                    addEnemyLine(xxo, xxo + l, h - 1);
+	                    occupied[hillStart - zoneStart] = true;
+	                    occupied[hillStart - zoneStart + hillWidth] = true;
+	                    addEnemyLine(hillStart, hillStart + hillWidth, hillHeight - 1);
 	                    if (random.nextInt(4) == 0)
 	                    {
-	                        decorate(xxo - 1, xxo + l + 1, h);
+	                        decorate(hillStart - 1, hillStart + hillWidth + 1, hillHeight);
 	                        keepGoing = false;
 	                    }
-	                    for (int x = xxo; x < xxo + l; x++)
+	                    for (int x = hillStart; x < hillStart + hillWidth; x++)
 	                    {
-	                        for (int y = h; y < floor; y++)
+	                        for (int y = hillHeight; y < floor; y++)
 	                        {
 	                            int xx = 5;
-	                            if (x == xxo) xx = 4;
-	                            if (x == xxo + l - 1) xx = 6;
+	                            if (x == hillStart) xx = 4;//if on start edge draw edge block
+	                            if (x == hillStart + hillWidth - 1) xx = 6;//if on end edge, draw edge block
 	                            int yy = 9;
-	                            if (y == h) yy = 8;
+	                            if (y == hillHeight) yy = 8;//if on top draw top edge block
 
 	                            if (getBlock(x, y) == 0)
 	                            {
@@ -396,6 +397,49 @@ public class MyLevel extends Level{
 	            {
 	                decorate(xo, xo + length, floor);
 	            }
+	        }
+
+	        return length;
+	    }
+	    
+	    private int buildFlat(int xo, int maxLength, boolean safe) {
+	    	//int length = random.nextInt(10) + 2;
+	    	int length = 2;
+	    	
+	        if (length > maxLength)
+	        	length = maxLength;
+
+	        int floor = curFloorHeight += ((random.nextInt(2) == 0) ? 1 : -1);
+	        
+	        if (floor < 2) {
+	        	curFloorHeight = floor = 2;
+	        }
+	        if (floor > height-1) {
+	        	curFloorHeight = floor = height-1;
+	        }
+	        
+	        //runs from the specified x position to the length of the segment
+	        for (int x = xo; x < xo + length; x++)
+	        {
+	            for (int y = 0; y < height; y++)
+	            {
+	                if (y >= floor)
+	                {
+	                    setBlock(x, y, GROUND);
+	                    if (getBlock(x, y) == HILL_TOP_LEFT) setBlock(x, y-2, HILL_TOP_LEFT_IN);
+                        if (getBlock(x, y) == HILL_TOP_RIGHT) setBlock(x, y-2, HILL_TOP_RIGHT_IN);
+	                }
+	            }
+	        }
+
+	        if (!safe)
+	        {
+            	type = 0;
+            	
+            	for (int x = xo; x < xo + length; x++) {
+	    			setSpriteTemplate(x, floor-1, new SpriteTemplate(type, false));
+	    			ENEMIES++;
+            	}
 	        }
 
 	        return length;
