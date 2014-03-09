@@ -42,6 +42,10 @@ public class MyLevel extends Level{
 	        curFloorHeight = height;
 	        creat(seed, difficulty, type);
 	    }
+		
+		public int randomInt(int minInt, int maxInt){
+			return minInt + random.nextInt(maxInt+1-minInt);
+		}
 
 	    public void creat(long seed, int difficulty, int type)
 	    {
@@ -69,7 +73,7 @@ public class MyLevel extends Level{
 				//length += buildTubes(length, width-length);
 				//length += buildCannons(length, width-length);
 	        	//length += buildFlat(length, width-length, true);
-	        	length += buildHillStraight(length, width-length);
+	        	length += buildGap(length, width-length, 1);
 	        }
 	        
 
@@ -99,8 +103,8 @@ public class MyLevel extends Level{
 	            {
 	                if (run-- <= 0 && x > 4)
 	                {
-	                    ceiling = random.nextInt(4);
-	                    run = random.nextInt(4) + 4;
+	                    ceiling = randomInt(0,3);//random.nextInt(4);
+	                    run = randomInt(4,7);//random.nextInt(4) + 4;
 	                }
 	                for (int y = 0; y < height; y++)
 	                {
@@ -116,21 +120,22 @@ public class MyLevel extends Level{
 	    }
 
 
-	    private int buildJump(int xo, int maxLength)
+	    @SuppressWarnings("unused")
+		private int buildGap(int zoneStart, int maxLength, int difficulty)
 	    {	gaps++;
-	    	//jl: jump length
-	    	//js: the number of blocks that are available at either side for free
-	        int js = random.nextInt(4) + 2;
-	        int jl = random.nextInt(2) + 2;
-	        int length = js * 2 + jl;
+	        int rocksWidth = randomInt(1,5);//difficulty could add more rocks
+	        int gapWidth = randomInt(2,3);//difficulty could increase gap width
+	        int length = rocksWidth * 2 + gapWidth;
+	        int gapStart = zoneStart + rocksWidth;
+	        int gapEnd = zoneStart + length - rocksWidth - 1;
 
-	        boolean hasStairs = random.nextInt(3) == 0;
+	        boolean hasStairs = randomInt(0,2) == 0;//difficulty could increase chance of stairs
 
-	        int floor = height - 1 - random.nextInt(4);
+	        int floor = height - 1 ;//- randomInt(0,3);
 	      //run from the start x position, for the whole length
-	        for (int x = xo; x < xo + length; x++)
+	        for (int x = zoneStart; x < zoneStart + length; x++)
 	        {
-	            if (x < xo + js || x > xo + length - js - 1)
+	            if (x < gapStart || x > gapEnd)
 	            {
 	            	//run for all y's since we need to paint blocks upward
 	                for (int y = 0; y < height; y++)
@@ -139,20 +144,20 @@ public class MyLevel extends Level{
 	                    {
 	                        setBlock(x, y, GROUND);
 	                    }
-	                  //if it is above ground, start making stairs of rocks
+	                    //if it is above ground, start making stairs of rocks
 	                    else if (hasStairs)
 	                    {	//LEFT SIDE
-	                        if (x < xo + js)
+	                        if (x < gapStart)
 	                        { //we need to max it out and level because it wont
 	                          //paint ground correctly unless two bricks are side by side
-	                            if (y >= floor - (x - xo) + 1)
+	                            if (y >= floor - (x - zoneStart) + 1)
 	                            {
 	                                setBlock(x, y, ROCK);
 	                            }
 	                        }
 	                        else
 	                        { //RIGHT SIDE
-	                            if (y >= floor - ((xo + length) - x) + 2)
+	                            if (y >= floor - ((zoneStart + length) - x) + 2)
 	                            {
 	                                setBlock(x, y, ROCK);
 	                            }
