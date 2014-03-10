@@ -58,7 +58,7 @@ public class Art
     private static Sequence[] songs = new Sequence[10];
     private static Sequencer sequencer;
 
-    public static boolean mute = false;
+    public static boolean mute = true;
     private static final String PREFIX="res";
 
 

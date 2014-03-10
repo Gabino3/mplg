@@ -1,5 +1,8 @@
 package dk.itu.mario.level;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
 import dk.itu.mario.MarioInterface.Constraints;
@@ -8,705 +11,702 @@ import dk.itu.mario.MarioInterface.LevelInterface;
 import dk.itu.mario.engine.sprites.SpriteTemplate;
 import dk.itu.mario.engine.sprites.Enemy;
 
+public class MyLevel extends Level
+{
+	// Store information about the level
+	public int ENEMIES = 0; // the number of enemies the level contains
+	public int BLOCKS_EMPTY = 0; // the number of empty blocks
+	public int BLOCKS_COINS = 0; // the number of coin blocks
+	public int BLOCKS_POWER = 0; // the number of power blocks
+	public int COINS = 0; // These are the coins in boxes that Mario collect
 
-public class MyLevel extends Level{
-	//Store information about the level
-	 public   int ENEMIES = 0; //the number of enemies the level contains
-	 public   int BLOCKS_EMPTY = 0; // the number of empty blocks
-	 public   int BLOCKS_COINS = 0; // the number of coin blocks
-	 public   int BLOCKS_POWER = 0; // the number of power blocks
-	 public   int COINS = 0; //These are the coins in boxes that Mario collect
-	 private int curFloorHeight;
+	private int curFloorHeight;
+	private boolean[] hillEdge;
+	private List<Hill> hills;
+	private int[] floorHeight;
+	private boolean[] pad;
+	private int[] debug;
 
- 
 	private static Random levelSeedRandom = new Random();
-	    public static long lastSeed;
+	public static long lastSeed;
 
-	    Random random;
+	Random random;
 
-  
-	    private int difficulty;
-	    private int type;
-		private int gaps;
+	private int difficulty;
+	private int type;
+	private int pits;
+
+	public MyLevel(int width, int height) {
+		super(width, height);
+		curFloorHeight = height;
+	}
+
+	public MyLevel(int width, int height, long seed, int difficulty, int type, GamePlay playerMetrics) {
+		this(width, height);
+		curFloorHeight = height;
+		creat(seed, difficulty, type);
+	}
+
+	public void creat(long seed, int difficulty, int type) {
+		// width = 128;
+		hillEdge = new boolean[width];
+		hills = new ArrayList<Hill>();
+		floorHeight = new int[width];
+		pad = new boolean[width];
+		debug = new int[width];
+
+		this.type = type;
+		this.difficulty = difficulty;
+
+		lastSeed = seed;
+		random = new Random(seed);
+
+		// create the start location
+		int length = 0;
+		// length += buildStraight(0, width, true);
+		length += buildStart(0, width);
+
+		// create all of the medium sections
+		/*while (length < width - 64) {
+			// length += buildZone(length, width - length);
+			// length += buildStraight(length, width-length, false);
+			// length += buildStraight(length, width-length, false);
+			// length += buildHillStraight(length, width-length);
+			// length += buildJump(length, width-length);
+			// length += buildTubes(length, width-length);
+			// length += buildCannons(length, width-length);
+			// length += buildFlat(length, width-length, true);
+
+			length += buildHillStraight(length, width - length);
+		}*/
 		
-		public MyLevel(int width, int height)
-	    {
-			super(width, height);
-			curFloorHeight = height;
-	    }
-
-
-		public MyLevel(int width, int height, long seed, int difficulty, int type, GamePlay playerMetrics)
-	    {
-	        this(width, height);
-	        curFloorHeight = height;
-	        creat(seed, difficulty, type);
-	    }
+		double terrainModifier = random.nextDouble();
+		double pitModifier = random.nextDouble();
 		
-		public int randomInt(int minInt, int maxInt){
-			return minInt + random.nextInt(maxInt+1-minInt);
+		System.out.printf("Modifiers:\n----------------\nter:\t%f\npit:\t%f\n", terrainModifier, pitModifier);
+		
+		buildTerrain(length, width-length-12, terrainModifier); // 12 = 8 for end + gap
+		addPits(length, width-length-12, pitModifier);
+		length += width-length-12;
+
+		// set the end piece
+		int floor = Math.min(floorHeight[length-1], height-1); //height - 1;// - random.nextInt(4);
+
+		xExit = length + 8;
+		yExit = floor;
+
+		// fills the end piece
+		for (int x = length; x < width; x++) {
+			for (int y = 0; y < height; y++) {
+				if (y >= floor) {
+					setBlock(x, y, GROUND);
+				}
+				
+				floorHeight[x] = floor;
+			}
 		}
 
-	    public void creat(long seed, int difficulty, int type)
-	    {
-	    	width = 128;
-	    	
-	        this.type = type;
-	        this.difficulty = difficulty;
+		if (type == LevelInterface.TYPE_CASTLE || type == LevelInterface.TYPE_UNDERGROUND) {
+			int ceiling = 0;
+			int run = 0;
+			for (int x = 0; x < width; x++) {
+				if (run-- <= 0 && x > 4) {
+					ceiling = random.nextInt(4);
+					run = random.nextInt(4) + 4;
+				}
+				for (int y = 0; y < height; y++) {
+					if ((x > 4 && y <= ceiling) || x < 1) {
+						setBlock(x, y, GROUND);
+					}
+				}
+			}
+		}
 
-	        lastSeed = seed;
-	        random = new Random(seed);
+		fixWalls();
+		
+		System.out.println(Arrays.toString(debug));
+	}
 
-	        //create the start location
-	        int length = 0;
-	        //length += buildStraight(0, width, true);
-	        length += buildFlat(0, width, true);
-	        
-	        //create all of the medium sections
-	        while (length < width - 64)
-	        {
-	            //length += buildZone(length, width - length);
-				//length += buildStraight(length, width-length, false);
-				//length += buildStraight(length, width-length, false);
-				//length += buildHillStraight(length, width-length);
-				//length += buildJump(length, width-length);
-				//length += buildTubes(length, width-length);
-				//length += buildCannons(length, width-length);
-	        	//length += buildFlat(length, width-length, true);
+	/*
+	 * Constructs the beginning of the level - a flat, undecorated piece of
+	 * flooring.
+	 */
+	private int buildStart(int zoneStart, int maxLength) {
+		int length = random.nextInt(10) + 2;
 
-	        	length += buildTubes(length, width-length);
+		if (length > maxLength)
+			length = maxLength;
 
-	        }
-	        
+		int floor = height - random.nextInt(2) - 1;
 
-	        //set the end piece
-	        int floor = height - 1;// - random.nextInt(4);
+		// runs from the specified x position to the length of the segment
+		for (int x = zoneStart; x < zoneStart + length; x++) {
+			for (int y = 0; y < height; y++) {
+				if (y >= floor) {
+					setBlock(x, y, GROUND);
+					if (getBlock(x, y) == HILL_TOP_LEFT)
+						setBlock(x, y - 2, HILL_TOP_LEFT_IN);
+					if (getBlock(x, y) == HILL_TOP_RIGHT)
+						setBlock(x, y - 2, HILL_TOP_RIGHT_IN);
+				}
+			}
+			floorHeight[x] = floor;
+		}
 
-	        xExit = length + 8;
-	        yExit = floor;
+		return length;
+	}
+	
+	/*
+	 * Creates the base terrain for the level and modifies how often the floor
+	 * height changes and by how much based on the provided modifier value.
+	 */
+	private int buildTerrain(int zoneStart, int maxLength, double modifier) {
+		int length = maxLength;
+		int maxHeight = height - 6;
+		int minHeight = height - 1;
+		
+		// make terrain more difficult depending on modifier
+		int heightVariance = (int)(Math.round(4*modifier));
+		int changeProbability = (int)(Math.round(10*modifier)) + 1;
+		
+		int minPadLength = 7;
+		int floor = floorHeight[zoneStart-1];
+		int padSize = 0;
+		
+		// alter floor for the length of the segment
+		for (int x = zoneStart; x < zoneStart + length; x++) {
+			
+			if (floor < maxHeight) { floor = maxHeight; }
+			if (floor > minHeight) { floor = minHeight; }
+			
+			// mark where each "pad" starts for later use and debugging
+			if (padSize == 0 && floor != floorHeight[x-1]) {
+				pad[x] = true;
+				debug[x] = 1;
+			}
+			
+			for (int y = 0; y < height; y++) {
+				if (y >= floor) {
+					setBlock(x, y, GROUND);
+					if (getBlock(x, y) == HILL_TOP_LEFT)
+						setBlock(x, y - 2, HILL_TOP_LEFT_IN);
+					if (getBlock(x, y) == HILL_TOP_RIGHT)
+						setBlock(x, y - 2, HILL_TOP_RIGHT_IN);
+				}
+			}
+			
+			floorHeight[x] = floor;
+			padSize++;
+			
+			// once minimum length reached, alter height by some chance
+			if (padSize > minPadLength && random.nextInt(changeProbability) != 0) {
+				floor += random.nextInt(heightVariance*2+1) - heightVariance;
+				padSize = 0;
+			}
+		}
 
-	        // fills the end piece
-	        for (int x = length; x < width; x++)
-	        {
-	            for (int y = 0; y < height; y++)
-	            {
-	                if (y >= floor)
-	                {
-	                    setBlock(x, y, GROUND);
-	                }
-	            }
-	        }
-	        
-	        if (type == LevelInterface.TYPE_CASTLE || type == LevelInterface.TYPE_UNDERGROUND)
-	        {
-	            int ceiling = 0;
-	            int run = 0;
-	            for (int x = 0; x < width; x++)
-	            {
-	                if (run-- <= 0 && x > 4)
-	                {
-	                    ceiling = randomInt(0,3);//random.nextInt(4);
-	                    run = randomInt(4,7);//random.nextInt(4) + 4;
-	                }
-	                for (int y = 0; y < height; y++)
-	                {
-	                    if ((x > 4 && y <= ceiling) || x < 1)
-	                    {
-	                        setBlock(x, y, GROUND);
-	                    }
-	                }
-	            }
-	        }
-	        
-	        fixWalls();
-	    }
+		return length;
+	}
+	
+	/* 
+	 * Scatters pits throughout the map. The higher the modifier, the more
+	 * frequent and large the pits become. Pits will not be created if its
+	 * edges are near an elevation change. This prevents unwanted graphical
+	 * errors.
+	 */
+	private int addPits(int zoneStart, int maxLength, double modifier) {
+		int length = maxLength;
+		
+		// ensure we don't get any divide-by-zero errors
+		if (modifier <= 0) { modifier = 0.01; }
+		
+		int pitProbability = (int)(Math.round(3*(1.0/Math.pow(modifier,3)))) + 1;
+		int pitWidth = (int)(Math.round(2*modifier)) + 2; // cannot exceed min pad length
+		
+		// find location to create pit
+		for (int x = zoneStart; x < zoneStart + length; x++) {
+			if (random.nextInt(pitProbability) == 0) {
+				
+				// avoid graphical issue with single ground blocks
+				if (!pad[x] && !pad[x-1] && !pad[x+pitWidth+2] && !pad[x+pitWidth+3]) {
+					
+					// create pit
+					for (int pit = x+1; pit < x+1+pitWidth; pit++) {
+						for (int y = floorHeight[pit]; y <= height; y++) {
+							setBlock(pit, y, (byte) 0); // empty block
+						}
+						
+						floorHeight[pit] = height;
+						debug[pit] = 2;
+					}
+				}
+				
+				pits++; // keep track of these, just cuz
+				x += pitWidth+1; // ensure no side-by-side pits
+			}
+		}
+		
+		return length;
+	}
+	
+	private int buildJump(int xo, int maxLength) {
+		pits++;
+		// jl: jump length
+		// js: the number of blocks that are available at either side for free
+		int js = random.nextInt(4) + 2;
+		int jl = random.nextInt(2) + 2;
+		int length = js * 2 + jl;
 
+		boolean hasStairs = random.nextInt(3) == 0;
 
-	    @SuppressWarnings("unused")
-		private int buildGap(int zoneStart, int maxLength, int difficulty)
-	    {	gaps++;
-	        int rocksWidth = randomInt(1,5);//difficulty could add more rocks
-	        int gapWidth = randomInt(2,3);//difficulty could increase gap width
-	        int length = rocksWidth * 2 + gapWidth;
-	        int gapStart = zoneStart + rocksWidth;
-	        int gapEnd = zoneStart + length - rocksWidth - 1;
+		int floor = height - 1 - random.nextInt(4);
+		// run from the start x position, for the whole length
+		for (int x = xo; x < xo + length; x++) {
+			if (x < xo + js || x > xo + length - js - 1) {
+				// run for all y's since we need to paint blocks upward
+				for (int y = 0; y < height; y++) { // paint ground up until the floor
+					if (y >= floor) {
+						setBlock(x, y, GROUND);
+					}
+					// if it is above ground, start making stairs of rocks
+					else if (hasStairs) { // LEFT SIDE
+						if (x < xo + js) { // we need to max it out and level because it wont
+											// paint ground correctly unless two bricks are side by side
+							if (y >= floor - (x - xo) + 1) {
+								setBlock(x, y, ROCK);
+							}
+						} else { // RIGHT SIDE
+							if (y >= floor - ((xo + length) - x) + 2) {
+								setBlock(x, y, ROCK);
+							}
+						}
+					}
+				}
+			}
+		}
 
-	        boolean hasStairs = randomInt(0,2) == 0;//difficulty could increase chance of stairs
+		return length;
+	}
 
-	        int floor = height - 1 ;//- randomInt(0,3);
-	      //run from the start x position, for the whole length
-	        for (int x = zoneStart; x < zoneStart + length; x++)
-	        {
-	            if (x < gapStart || x > gapEnd)
-	            {
-	            	//run for all y's since we need to paint blocks upward
-	                for (int y = 0; y < height; y++)
-	                {	//paint ground up until the floor
-	                    if (y >= floor)
-	                    {
-	                        setBlock(x, y, GROUND);
-	                    }
-	                    //if it is above ground, start making stairs of rocks
-	                    else if (hasStairs)
-	                    {	//LEFT SIDE
-	                        if (x < gapStart)
-	                        { //we need to max it out and level because it wont
-	                          //paint ground correctly unless two bricks are side by side
-	                            if (y >= floor - (x - zoneStart) + 1)
-	                            {
-	                                setBlock(x, y, ROCK);
-	                            }
-	                        }
-	                        else
-	                        { //RIGHT SIDE
-	                            if (y >= floor - ((zoneStart + length) - x) + 2)
-	                            {
-	                                setBlock(x, y, ROCK);
-	                            }
-	                        }
-	                    }
-	                }
-	            }
-	        }
+	private int buildCannons(int xo, int maxLength) {
+		int length = random.nextInt(10) + 2;
+		if (length > maxLength)
+			length = maxLength;
 
-	        return length;
-	    }
+		int floor = height - 1 - random.nextInt(4);
+		int xCannon = xo + 1 + random.nextInt(4);
+		for (int x = xo; x < xo + length; x++) {
+			if (x > xCannon) {
+				xCannon += 2 + random.nextInt(4);
+			}
+			if (xCannon == xo + length - 1)
+				xCannon += 10;
+			int cannonHeight = floor - random.nextInt(4) - 1;
 
-	    private int buildCannons(int xo, int maxLength)
-	    {
-	        int length = random.nextInt(10) + 2;
-	        if (length > maxLength) length = maxLength;
+			for (int y = 0; y < height; y++) {
+				if (y >= floor) {
+					setBlock(x, y, GROUND);
+				} else {
+					if (x == xCannon && y >= cannonHeight) {
+						if (y == cannonHeight) {
+							setBlock(x, y, (byte) (14 + 0 * 16));
+						} else if (y == cannonHeight + 1) {
+							setBlock(x, y, (byte) (14 + 1 * 16));
+						} else {
+							setBlock(x, y, (byte) (14 + 2 * 16));
+						}
+					}
+				}
+			}
+		}
 
-	        int floor = height - 1 - random.nextInt(4);
-	        int xCannon = xo + 1 + random.nextInt(4);
-	        for (int x = xo; x < xo + length; x++)
-	        {
-	            if (x > xCannon)
-	            {
-	                xCannon += 2 + random.nextInt(4);
-	            }
-	            if (xCannon == xo + length - 1) xCannon += 10;
-	            int cannonHeight = floor - random.nextInt(4) - 1;
+		return length;
+	}
 
-	            for (int y = 0; y < height; y++)
-	            {
-	                if (y >= floor)
-	                {
-	                    setBlock(x, y, GROUND);
-	                }
-	                else
-	                {
-	                    if (x == xCannon && y >= cannonHeight)
-	                    {
-	                        if (y == cannonHeight)
-	                        {
-	                            setBlock(x, y, (byte) (14 + 0 * 16));
-	                        }
-	                        else if (y == cannonHeight + 1)
-	                        {
-	                            setBlock(x, y, (byte) (14 + 1 * 16));
-	                        }
-	                        else
-	                        {
-	                            setBlock(x, y, (byte) (14 + 2 * 16));
-	                        }
-	                    }
-	                }
-	            }
-	        }
+	private int buildHillStraight(int zoneStart, int maxLength) {
+		int length = random.nextInt(10) + 10;
+		if (length > maxLength)
+			length = maxLength;
 
-	        return length;
-	    }
+		int floor = height - 1 - random.nextInt(4);
+		for (int x = zoneStart; x < zoneStart + length; x++) {
+			for (int y = 0; y < height; y++) {
+				if (y >= floor) {
+					setBlock(x, y, GROUND);
+				}
+			}
+		}
 
-	    private int buildHillStraight(int zoneStart, int maxLength)
-	    {
-	        int length = random.nextInt(10) + 10;
-	        if (length > maxLength) length = maxLength;
+		int hillHeight = floor;
+		boolean keepGoing = true;
+		boolean firstHill = true;
 
-	        int floor = height - 1 - random.nextInt(4);
-	        for (int x = zoneStart; x < zoneStart + length; x++)
-	        {
-	            for (int y = 0; y < height; y++)
-	            {
-	                if (y >= floor)
-	                {
-	                    setBlock(x, y, GROUND);
-	                }
-	            }
-	        }
+		// attempt to add as many hills as possible
+		while (keepGoing) {
+			hillHeight = hillHeight - 2 - random.nextInt(3);
 
-	        addEnemyLine(zoneStart + 1, zoneStart + length - 1, floor - 1);
+			if (hillHeight <= 0) {
+				keepGoing = false;
 
-	        int hillHeight = floor;
+			} else {
+				int minWidth = 3;
+				int maxWidth = 7;
 
-	        boolean keepGoing = true;
+				List<Hill> possibleHills = new ArrayList<Hill>();
 
-	        boolean[] occupied = new boolean[length];
-	        while (keepGoing)
-	        {
-	            hillHeight = hillHeight - 2 - random.nextInt(3);
+				// find all legal hills for the given height
+				for (int width = minWidth; width <= maxWidth; width++) {
+					for (int start = 1; start < length - width - 1; start++) {
 
-	            if (hillHeight <= 0)
-	            {
-	                keepGoing = false;
-	            }
-	            else
-	            {
-	                int hillWidth = random.nextInt(5) + 3;
-	                int hillStart = random.nextInt(length - hillWidth - 2) + zoneStart + 1;
+						if ((firstHill || (getBlock(start + zoneStart + width, floor - 1) == 0 || getBlock(start
+								+ zoneStart, floor - 1) == 0))
+								&& !hillEdge[start + zoneStart]
+								&& !hillEdge[start + zoneStart + width]
+								&& !hillEdge[start + zoneStart - 1] && !hillEdge[start + zoneStart + width + 1]) {
+							possibleHills.add(new Hill(start + zoneStart, width));
+						}
+					}
+				}
 
-	                if (occupied[hillStart - zoneStart] || occupied[hillStart - zoneStart + hillWidth] || occupied[hillStart - zoneStart - 1] || occupied[hillStart - zoneStart + hillWidth + 1])
-	                {
-	                    keepGoing = false;
-	                }
-	                else
-	                {
-	                    occupied[hillStart - zoneStart] = true;
-	                    occupied[hillStart - zoneStart + hillWidth] = true;
-	                    addEnemyLine(hillStart, hillStart + hillWidth, hillHeight - 1);
-	                    if (random.nextInt(4) == 0)
-	                    {
-	                        decorate(hillStart - 1, hillStart + hillWidth + 1, hillHeight);
-	                        keepGoing = false;
-	                    }
-	                    for (int x = hillStart; x < hillStart + hillWidth; x++)
-	                    {
-	                        for (int y = hillHeight; y < floor; y++)
-	                        {
-	                            int xx = 5;
-	                            if (x == hillStart) xx = 4;//if on start edge draw edge block
-	                            if (x == hillStart + hillWidth - 1) xx = 6;//if on end edge, draw edge block
-	                            int yy = 9;
-	                            if (y == hillHeight) yy = 8;//if on top draw top edge block
+				if (possibleHills.isEmpty()) {
+					keepGoing = false;
+				} else {
+					// select hill at random
+					Hill hill = possibleHills.get(random.nextInt(possibleHills.size()));
+					int hillWidth = hill.width();
+					int hillStart = hill.start();
+					hills.add(hill);
 
-	                            if (getBlock(x, y) == 0)
-	                            {
-	                                setBlock(x, y, (byte) (xx + yy * 16));
-	                            }
-	                            else
-	                            {
-	                                if (getBlock(x, y) == HILL_TOP_LEFT) setBlock(x, y, HILL_TOP_LEFT_IN);
-	                                if (getBlock(x, y) == HILL_TOP_RIGHT) setBlock(x, y, HILL_TOP_RIGHT_IN);
-	                            }
-	                        }
-	                    }
-	                }
-	            }
-	        }
+					// construct hill
+					hillEdge[hillStart] = true;
+					hillEdge[hillStart + hillWidth] = true;
+					for (int x = hillStart; x < hillStart + hillWidth; x++) {
+						for (int y = hillHeight; y < floor; y++) {
+							int xx = 5;
+							if (x == hillStart)
+								xx = 4; // if on start edge draw edge block
+							if (x == hillStart + hillWidth - 1)
+								xx = 6; // if on end edge, draw edge block
+							int yy = 9;
+							if (y == hillHeight)
+								yy = 8; // if on top draw top edge block
 
-	        return length;
-	    }
+							if (getBlock(x, y) == 0 || getBlock(x, y) == (5 + 9 * 16)) {
+								setBlock(x, y, (byte) (xx + yy * 16));
+							} else {
+								if (getBlock(x, y) == HILL_TOP_LEFT)
+									setBlock(x, y, HILL_TOP_LEFT_IN);
+								if (getBlock(x, y) == HILL_TOP_RIGHT)
+									setBlock(x, y, HILL_TOP_RIGHT_IN);
+							}
+						}
+					}
 
-	    private void addEnemyLine(int x0, int x1, int y)
-	    {
-	        for (int x = x0; x < x1; x++)
-	        {
-	            if (random.nextInt(35) < difficulty + 1)
-	            {
-	                int type = random.nextInt(4);
+					firstHill = false;
+				}
+			}
+		}
 
-	                if (difficulty < 1)
-	                {
-	                    type = Enemy.ENEMY_GOOMBA;
-	                }
-	                else if (difficulty < 3)
-	                {
-	                    type = random.nextInt(3);
-	                }
+		return length;
+	}
 
-	                setSpriteTemplate(x, y, new SpriteTemplate(type, random.nextInt(35) < difficulty));
-	                ENEMIES++;
-	            }
-	        }
-	    }
+	private class Hill
+	{
+		private int start, width;
 
-	    private int buildTubes(int zoneStart, int maxLength)
-	    {
-	        int length = random.nextInt(10) + 5;
-	        if (length > maxLength) length = maxLength;
+		public Hill(int start, int width) {
+			this.start = start;
+			this.width = width;
+		}
 
-	        int floor = height - 1 - random.nextInt(4);
-	        int xTube = zoneStart + 1 + random.nextInt(4);
-	        int tubeHeight = floor - random.nextInt(2) - 2;
-	        
-	        for (int x = zoneStart; x < zoneStart + length; x++)
-	        {
-	            if (x > xTube + 1)
-	            {
-	                xTube += 3 + random.nextInt(4); // 3-6 spaces between tubes
-	                tubeHeight = floor - random.nextInt(2) - 2; // tubes 2-3 blocks high
-	            }
-	            if (xTube >= zoneStart + length - 2) xTube += 10;
+		public int start() {
+			return start;
+		}
 
-	            if (x == xTube && random.nextInt(11) < difficulty + 1)
-	            {
-	                setSpriteTemplate(x, tubeHeight, new SpriteTemplate(Enemy.ENEMY_FLOWER, false));
-	                ENEMIES++;
-	            }
+		public int width() {
+			return width;
+		}
+	}
 
-	            for (int y = 0; y < height; y++)
-	            {
-	                if (y >= floor)
-	                {
-	                    setBlock(x, y, GROUND);
-	                }
-	                else
-	                {
-	                    if ((x == xTube || x == xTube + 1) && y >= tubeHeight)
-	                    {
-	                        int xPic = 10 + x - xTube;
+	private void addEnemyLine(int x0, int x1, int y) {
+		for (int x = x0; x < x1; x++) {
+			if (random.nextInt(35) < difficulty + 1) {
+				int type = random.nextInt(4);
 
-	                        if (y == tubeHeight)
-	                        {
-	                        	//tube top
-	                            setBlock(x, y, (byte) (xPic + 0 * 16));
-	                        }
-	                        else
-	                        {
-	                        	//tube side
-	                            setBlock(x, y, (byte) (xPic + 1 * 16));
-	                        }
-	                    }
-	                }
-	            }
-	        }
+				if (difficulty < 1) {
+					type = Enemy.ENEMY_GOOMBA;
+				} else if (difficulty < 3) {
+					type = random.nextInt(3);
+				}
 
-	        return length;
-	    }
+				setSpriteTemplate(x, y, new SpriteTemplate(type, random.nextInt(35) < difficulty));
+				ENEMIES++;
+			}
+		}
+	}
 
-	    private int buildStraight(int xo, int maxLength, boolean safe)
-	    {
-	        int length = random.nextInt(10) + 2;
+	private int buildTubes(int zoneStart, int maxLength) {
+		int length = random.nextInt(10) + 5;
+		if (length > maxLength)
+			length = maxLength;
 
-	        if (safe)
-	        	length = 10 + random.nextInt(5);
+		int floor = height - 1 - random.nextInt(4);
+		int xTube = zoneStart + 1 + random.nextInt(4);
+		int tubeHeight = floor - random.nextInt(2) - 2;
 
-	        if (length > maxLength)
-	        	length = maxLength;
+		for (int x = zoneStart; x < zoneStart + length; x++) {
+			if (x > xTube + 1) {
+				xTube += 3 + random.nextInt(4); // 3-6 spaces between tubes
+				tubeHeight = floor - random.nextInt(2) - 2; // tubes 2-3 blocks high
+			}
+			if (xTube >= zoneStart + length - 2)
+				xTube += 10;
 
-	        int floor = height - 1 - random.nextInt(4);
+			if (x == xTube && random.nextInt(11) < difficulty + 1) {
+				setSpriteTemplate(x, tubeHeight, new SpriteTemplate(Enemy.ENEMY_FLOWER, false));
+				ENEMIES++;
+			}
 
-	        //runs from the specified x position to the length of the segment
-	        for (int x = xo; x < xo + length; x++)
-	        {
-	            for (int y = 0; y < height; y++)
-	            {
-	                if (y >= floor)
-	                {
-	                    setBlock(x, y, GROUND);
-	                }
-	            }
-	        }
+			for (int y = 0; y < height; y++) {
+				if (y >= floor) {
+					setBlock(x, y, GROUND);
+				} else {
+					if ((x == xTube || x == xTube + 1) && y >= tubeHeight) {
+						int xPic = 10 + x - xTube;
 
-	        if (!safe)
-	        {
-	            if (length > 5)
-	            {
-	                decorate(xo, xo + length, floor);
-	            }
-	        }
+						if (y == tubeHeight) {
+							// tube top
+							setBlock(x, y, (byte) (xPic + 0 * 16));
+						} else {
+							// tube side
+							setBlock(x, y, (byte) (xPic + 1 * 16));
+						}
+					}
+				}
+			}
+		}
 
-	        return length;
-	    }
-	    
-	    private int buildFlat(int xo, int maxLength, boolean safe) {
-	    	//int length = random.nextInt(10) + 2;
-	    	int length = 2;
-	    	
-	        if (length > maxLength)
-	        	length = maxLength;
+		return length;
+	}
 
-	        int floor = curFloorHeight += ((random.nextInt(2) == 0) ? 1 : -1);
-	        
-	        if (floor < 2) {
-	        	curFloorHeight = floor = 2;
-	        }
-	        if (floor > height-1) {
-	        	curFloorHeight = floor = height-1;
-	        }
-	        
-	        //runs from the specified x position to the length of the segment
-	        for (int x = xo; x < xo + length; x++)
-	        {
-	            for (int y = 0; y < height; y++)
-	            {
-	                if (y >= floor)
-	                {
-	                    setBlock(x, y, GROUND);
-	                    if (getBlock(x, y) == HILL_TOP_LEFT) setBlock(x, y-2, HILL_TOP_LEFT_IN);
-                        if (getBlock(x, y) == HILL_TOP_RIGHT) setBlock(x, y-2, HILL_TOP_RIGHT_IN);
-	                }
-	            }
-	        }
+	private int buildStraight(int xo, int maxLength, boolean safe) {
+		int length = random.nextInt(10) + 2;
 
-	        if (!safe)
-	        {
-            	type = 0;
-            	
-            	for (int x = xo; x < xo + length; x++) {
-	    			setSpriteTemplate(x, floor-1, new SpriteTemplate(type, false));
-	    			ENEMIES++;
-            	}
-	        }
+		if (safe)
+			length = 10 + random.nextInt(5);
 
-	        return length;
-	    }
+		if (length > maxLength)
+			length = maxLength;
 
-	    private void decorate(int xStart, int xLength, int floor)
-	    {
-	    	//if its at the very top, just return
-	        if (floor < 1)
-	        	return;
+		int floor = height - 1 - random.nextInt(4);
 
-	        //        boolean coins = random.nextInt(3) == 0;
-	        boolean rocks = true;
+		// runs from the specified x position to the length of the segment
+		for (int x = xo; x < xo + length; x++) {
+			for (int y = 0; y < height; y++) {
+				if (y >= floor) {
+					setBlock(x, y, GROUND);
+				}
+			}
+		}
 
-	        //add an enemy line above the box
-	        addEnemyLine(xStart + 1, xLength - 1, floor - 1);
+		if (!safe) {
+			if (length > 5) {
+				decorate(xo, xo + length, floor);
+			}
+		}
 
-	        int s = random.nextInt(4);
-	        int e = random.nextInt(4);
+		return length;
+	}
 
-	        if (floor - 2 > 0){
-	            if ((xLength - 1 - e) - (xStart + 1 + s) > 1){
-	                for(int x = xStart + 1 + s; x < xLength - 1 - e; x++){
-	                    setBlock(x, floor - 2, COIN);
-	                    COINS++;
-	                }
-	            }
-	        }
+	private void decorate(int xStart, int xLength, int floor) {
+		// if its at the very top, just return
+		if (floor < 1)
+			return;
 
-	        s = random.nextInt(4);
-	        e = random.nextInt(4);
-	        
-	        //this fills the set of blocks and the hidden objects inside them
-	        if (floor - 4 > 0)
-	        {
-	            if ((xLength - 1 - e) - (xStart + 1 + s) > 2)
-	            {
-	                for (int x = xStart + 1 + s; x < xLength - 1 - e; x++)
-	                {
-	                    if (rocks)
-	                    {
-	                        if (x != xStart + 1 && x != xLength - 2 && random.nextInt(3) == 0)
-	                        {
-	                            if (random.nextInt(4) == 0)
-	                            {
-	                                setBlock(x, floor - 4, BLOCK_POWERUP);
-	                                BLOCKS_POWER++;
-	                            }
-	                            else
-	                            {	//the fills a block with a hidden coin
-	                                setBlock(x, floor - 4, BLOCK_COIN);
-	                                BLOCKS_COINS++;
-	                            }
-	                        }
-	                        else if (random.nextInt(4) == 0)
-	                        {
-	                            if (random.nextInt(4) == 0)
-	                            {
-	                                setBlock(x, floor - 4, (byte) (2 + 1 * 16));
-	                            }
-	                            else
-	                            {
-	                                setBlock(x, floor - 4, (byte) (1 + 1 * 16));
-	                            }
-	                        }
-	                        else
-	                        {
-	                            setBlock(x, floor - 4, BLOCK_EMPTY);
-	                            BLOCKS_EMPTY++;
-	                        }
-	                    }
-	                }
-	            }
-	        }
-	    }
+		// boolean coins = random.nextInt(3) == 0;
+		boolean rocks = true;
 
-	    private void fixWalls()
-	    {
-	        boolean[][] blockMap = new boolean[width + 1][height + 1];
+		// add an enemy line above the box
+		addEnemyLine(xStart + 1, xLength - 1, floor - 1);
 
-	        for (int x = 0; x < width + 1; x++)
-	        {
-	            for (int y = 0; y < height + 1; y++)
-	            {
-	                int blocks = 0;
-	                for (int xx = x - 1; xx < x + 1; xx++)
-	                {
-	                    for (int yy = y - 1; yy < y + 1; yy++)
-	                    {
-	                        if (getBlockCapped(xx, yy) == GROUND){
-	                        	blocks++;
-	                        }
-	                    }
-	                }
-	                blockMap[x][y] = blocks == 4;
-	            }
-	        }
-	        blockify(this, blockMap, width + 1, height + 1);
-	    }
+		int s = random.nextInt(4);
+		int e = random.nextInt(4);
 
-	    private void blockify(Level level, boolean[][] blocks, int width, int height){
-	        int to = 0;
-	        if (type == LevelInterface.TYPE_CASTLE)
-	        {
-	            to = 4 * 2;
-	        }
-	        else if (type == LevelInterface.TYPE_UNDERGROUND)
-	        {
-	            to = 4 * 3;
-	        }
+		if (floor - 2 > 0) {
+			if ((xLength - 1 - e) - (xStart + 1 + s) > 1) {
+				for (int x = xStart + 1 + s; x < xLength - 1 - e; x++) {
+					setBlock(x, floor - 2, COIN);
+					COINS++;
+				}
+			}
+		}
 
-	        boolean[][] b = new boolean[2][2];
+		s = random.nextInt(4);
+		e = random.nextInt(4);
 
-	        for (int x = 0; x < width; x++)
-	        {
-	            for (int y = 0; y < height; y++)
-	            {
-	                for (int xx = x; xx <= x + 1; xx++)
-	                {
-	                    for (int yy = y; yy <= y + 1; yy++)
-	                    {
-	                        int _xx = xx;
-	                        int _yy = yy;
-	                        if (_xx < 0) _xx = 0;
-	                        if (_yy < 0) _yy = 0;
-	                        if (_xx > width - 1) _xx = width - 1;
-	                        if (_yy > height - 1) _yy = height - 1;
-	                        b[xx - x][yy - y] = blocks[_xx][_yy];
-	                    }
-	                }
+		// this fills the set of blocks and the hidden objects inside them
+		if (floor - 4 > 0) {
+			if ((xLength - 1 - e) - (xStart + 1 + s) > 2) {
+				for (int x = xStart + 1 + s; x < xLength - 1 - e; x++) {
+					if (rocks) {
+						if (x != xStart + 1 && x != xLength - 2 && random.nextInt(3) == 0) {
+							if (random.nextInt(4) == 0) {
+								setBlock(x, floor - 4, BLOCK_POWERUP);
+								BLOCKS_POWER++;
+							} else { // the fills a block with a hidden coin
+								setBlock(x, floor - 4, BLOCK_COIN);
+								BLOCKS_COINS++;
+							}
+						} else if (random.nextInt(4) == 0) {
+							if (random.nextInt(4) == 0) {
+								setBlock(x, floor - 4, (byte) (2 + 1 * 16));
+							} else {
+								setBlock(x, floor - 4, (byte) (1 + 1 * 16));
+							}
+						} else {
+							setBlock(x, floor - 4, BLOCK_EMPTY);
+							BLOCKS_EMPTY++;
+						}
+					}
+				}
+			}
+		}
+	}
 
-	                if (b[0][0] == b[1][0] && b[0][1] == b[1][1])
-	                {
-	                    if (b[0][0] == b[0][1])
-	                    {
-	                        if (b[0][0])
-	                        {
-	                            level.setBlock(x, y, (byte) (1 + 9 * 16 + to));
-	                        }
-	                        else
-	                        {
-	                            // KEEP OLD BLOCK!
-	                        }
-	                    }
-	                    else
-	                    {
-	                        if (b[0][0])
-	                        {
-	                        	//down grass top?
-	                            level.setBlock(x, y, (byte) (1 + 10 * 16 + to));
-	                        }
-	                        else
-	                        {
-	                        	//up grass top
-	                            level.setBlock(x, y, (byte) (1 + 8 * 16 + to));
-	                        }
-	                    }
-	                }
-	                else if (b[0][0] == b[0][1] && b[1][0] == b[1][1])
-	                {
-	                    if (b[0][0])
-	                    {
-	                    	//right grass top
-	                        level.setBlock(x, y, (byte) (2 + 9 * 16 + to));
-	                    }
-	                    else
-	                    {
-	                    	//left grass top
-	                        level.setBlock(x, y, (byte) (0 + 9 * 16 + to));
-	                    }
-	                }
-	                else if (b[0][0] == b[1][1] && b[0][1] == b[1][0])
-	                {
-	                    level.setBlock(x, y, (byte) (1 + 9 * 16 + to));
-	                }
-	                else if (b[0][0] == b[1][0])
-	                {
-	                    if (b[0][0])
-	                    {
-	                        if (b[0][1])
-	                        {
-	                            level.setBlock(x, y, (byte) (3 + 10 * 16 + to));
-	                        }
-	                        else
-	                        {
-	                            level.setBlock(x, y, (byte) (3 + 11 * 16 + to));
-	                        }
-	                    }
-	                    else
-	                    {
-	                        if (b[0][1])
-	                        {
-	                        	//right up grass top
-	                            level.setBlock(x, y, (byte) (2 + 8 * 16 + to));
-	                        }
-	                        else
-	                        {
-	                        	//left up grass top
-	                            level.setBlock(x, y, (byte) (0 + 8 * 16 + to));
-	                        }
-	                    }
-	                }
-	                else if (b[0][1] == b[1][1])
-	                {
-	                    if (b[0][1])
-	                    {
-	                        if (b[0][0])
-	                        {
-	                        	//left pocket grass
-	                            level.setBlock(x, y, (byte) (3 + 9 * 16 + to));
-	                        }
-	                        else
-	                        {
-	                        	//right pocket grass
-	                            level.setBlock(x, y, (byte) (3 + 8 * 16 + to));
-	                        }
-	                    }
-	                    else
-	                    {
-	                        if (b[0][0])
-	                        {
-	                            level.setBlock(x, y, (byte) (2 + 10 * 16 + to));
-	                        }
-	                        else
-	                        {
-	                            level.setBlock(x, y, (byte) (0 + 10 * 16 + to));
-	                        }
-	                    }
-	                }
-	                else
-	                {
-	                    level.setBlock(x, y, (byte) (0 + 1 * 16 + to));
-	                }
-	            }
-	        }
-	    }
-	    
-	    public RandomLevel clone() throws CloneNotSupportedException {
+	private void fixWalls() {
+		boolean[][] blockMap = new boolean[width + 1][height + 1];
 
-	    	RandomLevel clone=new RandomLevel(width, height);
+		for (int x = 0; x < width + 1; x++) {
+			for (int y = 0; y < height + 1; y++) {
+				int blocks = 0;
+				for (int xx = x - 1; xx < x + 1; xx++) {
+					for (int yy = y - 1; yy < y + 1; yy++) {
+						if (getBlockCapped(xx, yy) == GROUND) {
+							blocks++;
+						}
+					}
+				}
+				blockMap[x][y] = blocks == 4;
+			}
+		}
+		blockify(this, blockMap, width + 1, height + 1);
+	}
 
-	    	clone.xExit = xExit;
-	    	clone.yExit = yExit;
-	    	byte[][] map = getMap();
-	    	SpriteTemplate[][] st = getSpriteTemplate();
-	    	
-	    	for (int i = 0; i < map.length; i++)
-	    		for (int j = 0; j < map[i].length; j++) {
-	    			clone.setBlock(i, j, map[i][j]);
-	    			clone.setSpriteTemplate(i, j, st[i][j]);
-	    	}
-	    	clone.BLOCKS_COINS = BLOCKS_COINS;
-	    	clone.BLOCKS_EMPTY = BLOCKS_EMPTY;
-	    	clone.BLOCKS_POWER = BLOCKS_POWER;
-	    	clone.ENEMIES = ENEMIES;
-	    	clone.COINS = COINS;
-	    	
-	        return clone;
+	private void blockify(Level level, boolean[][] blocks, int width, int height) {
+		int to = 0;
+		if (type == LevelInterface.TYPE_CASTLE) {
+			to = 4 * 2;
+		} else if (type == LevelInterface.TYPE_UNDERGROUND) {
+			to = 4 * 3;
+		}
 
-	      }
+		boolean[][] b = new boolean[2][2];
 
+		for (int x = 0; x < width; x++) {
+			for (int y = 0; y < height; y++) {
+				for (int xx = x; xx <= x + 1; xx++) {
+					for (int yy = y; yy <= y + 1; yy++) {
+						int _xx = xx;
+						int _yy = yy;
+						if (_xx < 0)
+							_xx = 0;
+						if (_yy < 0)
+							_yy = 0;
+						if (_xx > width - 1)
+							_xx = width - 1;
+						if (_yy > height - 1)
+							_yy = height - 1;
+						b[xx - x][yy - y] = blocks[_xx][_yy];
+					}
+				}
+
+				if (b[0][0] == b[1][0] && b[0][1] == b[1][1]) {
+					if (b[0][0] == b[0][1]) {
+						if (b[0][0]) {
+							level.setBlock(x, y, (byte) (1 + 9 * 16 + to));
+						} else {
+							// KEEP OLD BLOCK!
+						}
+					} else {
+						if (b[0][0]) {
+							// down grass top?
+							level.setBlock(x, y, (byte) (1 + 10 * 16 + to));
+						} else {
+							// up grass top
+							level.setBlock(x, y, (byte) (1 + 8 * 16 + to));
+						}
+					}
+				} else if (b[0][0] == b[0][1] && b[1][0] == b[1][1]) {
+					if (b[0][0]) {
+						// right grass top
+						level.setBlock(x, y, (byte) (2 + 9 * 16 + to));
+					} else {
+						// left grass top
+						level.setBlock(x, y, (byte) (0 + 9 * 16 + to));
+					}
+				} else if (b[0][0] == b[1][1] && b[0][1] == b[1][0]) {
+					level.setBlock(x, y, (byte) (1 + 9 * 16 + to));
+				} else if (b[0][0] == b[1][0]) {
+					if (b[0][0]) {
+						if (b[0][1]) {
+							level.setBlock(x, y, (byte) (3 + 10 * 16 + to));
+						} else {
+							level.setBlock(x, y, (byte) (3 + 11 * 16 + to));
+						}
+					} else {
+						if (b[0][1]) {
+							// right up grass top
+							level.setBlock(x, y, (byte) (2 + 8 * 16 + to));
+						} else {
+							// left up grass top
+							level.setBlock(x, y, (byte) (0 + 8 * 16 + to));
+						}
+					}
+				} else if (b[0][1] == b[1][1]) {
+					if (b[0][1]) {
+						if (b[0][0]) {
+							// left pocket grass
+							level.setBlock(x, y, (byte) (3 + 9 * 16 + to));
+						} else {
+							// right pocket grass
+							level.setBlock(x, y, (byte) (3 + 8 * 16 + to));
+						}
+					} else {
+						if (b[0][0]) {
+							level.setBlock(x, y, (byte) (2 + 10 * 16 + to));
+						} else {
+							level.setBlock(x, y, (byte) (0 + 10 * 16 + to));
+						}
+					}
+				} else {
+					level.setBlock(x, y, (byte) (0 + 1 * 16 + to));
+				}
+			}
+		}
+	}
+
+	public RandomLevel clone() throws CloneNotSupportedException {
+
+		RandomLevel clone = new RandomLevel(width, height);
+
+		clone.xExit = xExit;
+		clone.yExit = yExit;
+		byte[][] map = getMap();
+		SpriteTemplate[][] st = getSpriteTemplate();
+
+		for (int i = 0; i < map.length; i++)
+			for (int j = 0; j < map[i].length; j++) {
+				clone.setBlock(i, j, map[i][j]);
+				clone.setSpriteTemplate(i, j, st[i][j]);
+			}
+		clone.BLOCKS_COINS = BLOCKS_COINS;
+		clone.BLOCKS_EMPTY = BLOCKS_EMPTY;
+		clone.BLOCKS_POWER = BLOCKS_POWER;
+		clone.ENEMIES = ENEMIES;
+		clone.COINS = COINS;
+
+		return clone;
+
+	}
 
 }
