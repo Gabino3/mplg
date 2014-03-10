@@ -1,6 +1,7 @@
 package dk.itu.mario.level;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -22,6 +23,9 @@ public class MyLevel extends Level
 	private int curFloorHeight;
 	private boolean[] hillEdge;
 	private List<Hill> hills;
+	private int[] floorHeight;
+	private boolean[] pad;
+	private int[] debug;
 
 	private static Random levelSeedRandom = new Random();
 	public static long lastSeed;
@@ -30,7 +34,7 @@ public class MyLevel extends Level
 
 	private int difficulty;
 	private int type;
-	private int gaps;
+	private int pits;
 
 	public MyLevel(int width, int height) {
 		super(width, height);
@@ -47,6 +51,9 @@ public class MyLevel extends Level
 		// width = 128;
 		hillEdge = new boolean[width];
 		hills = new ArrayList<Hill>();
+		floorHeight = new int[width];
+		pad = new boolean[width];
+		debug = new int[width];
 
 		this.type = type;
 		this.difficulty = difficulty;
@@ -57,10 +64,10 @@ public class MyLevel extends Level
 		// create the start location
 		int length = 0;
 		// length += buildStraight(0, width, true);
-		length += buildFlat(0, width, true);
+		length += buildStart(0, width);
 
 		// create all of the medium sections
-		while (length < width - 64) {
+		/*while (length < width - 64) {
 			// length += buildZone(length, width - length);
 			// length += buildStraight(length, width-length, false);
 			// length += buildStraight(length, width-length, false);
@@ -71,10 +78,19 @@ public class MyLevel extends Level
 			// length += buildFlat(length, width-length, true);
 
 			length += buildHillStraight(length, width - length);
-		}
+		}*/
+		
+		double terrainModifier = random.nextDouble();
+		double pitModifier = random.nextDouble();
+		
+		System.out.printf("Modifiers:\n----------------\nter:\t%f\npit:\t%f\n", terrainModifier, pitModifier);
+		
+		buildTerrain(length, width-length-12, terrainModifier); // 12 = 8 for end + gap
+		addPits(length, width-length-12, pitModifier);
+		length += width-length-12;
 
 		// set the end piece
-		int floor = height - 1;// - random.nextInt(4);
+		int floor = Math.min(floorHeight[length-1], height-1); //height - 1;// - random.nextInt(4);
 
 		xExit = length + 8;
 		yExit = floor;
@@ -85,6 +101,8 @@ public class MyLevel extends Level
 				if (y >= floor) {
 					setBlock(x, y, GROUND);
 				}
+				
+				floorHeight[x] = floor;
 			}
 		}
 
@@ -105,10 +123,134 @@ public class MyLevel extends Level
 		}
 
 		fixWalls();
+		
+		System.out.println(Arrays.toString(debug));
 	}
 
+	/*
+	 * Constructs the beginning of the level - a flat, undecorated piece of
+	 * flooring.
+	 */
+	private int buildStart(int zoneStart, int maxLength) {
+		int length = random.nextInt(10) + 2;
+
+		if (length > maxLength)
+			length = maxLength;
+
+		int floor = height - random.nextInt(2) - 1;
+
+		// runs from the specified x position to the length of the segment
+		for (int x = zoneStart; x < zoneStart + length; x++) {
+			for (int y = 0; y < height; y++) {
+				if (y >= floor) {
+					setBlock(x, y, GROUND);
+					if (getBlock(x, y) == HILL_TOP_LEFT)
+						setBlock(x, y - 2, HILL_TOP_LEFT_IN);
+					if (getBlock(x, y) == HILL_TOP_RIGHT)
+						setBlock(x, y - 2, HILL_TOP_RIGHT_IN);
+				}
+			}
+			floorHeight[x] = floor;
+		}
+
+		return length;
+	}
+	
+	/*
+	 * Creates the base terrain for the level and modifies how often the floor
+	 * height changes and by how much based on the provided modifier value.
+	 */
+	private int buildTerrain(int zoneStart, int maxLength, double modifier) {
+		int length = maxLength;
+		int maxHeight = height - 6;
+		int minHeight = height - 1;
+		
+		// make terrain more difficult depending on modifier
+		int heightVariance = (int)(Math.round(4*modifier));
+		int changeProbability = (int)(Math.round(10*modifier)) + 1;
+		
+		int minPadLength = 7;
+		int floor = floorHeight[zoneStart-1];
+		int padSize = 0;
+		
+		// alter floor for the length of the segment
+		for (int x = zoneStart; x < zoneStart + length; x++) {
+			
+			if (floor < maxHeight) { floor = maxHeight; }
+			if (floor > minHeight) { floor = minHeight; }
+			
+			// mark where each "pad" starts for later use and debugging
+			if (padSize == 0 && floor != floorHeight[x-1]) {
+				pad[x] = true;
+				debug[x] = 1;
+			}
+			
+			for (int y = 0; y < height; y++) {
+				if (y >= floor) {
+					setBlock(x, y, GROUND);
+					if (getBlock(x, y) == HILL_TOP_LEFT)
+						setBlock(x, y - 2, HILL_TOP_LEFT_IN);
+					if (getBlock(x, y) == HILL_TOP_RIGHT)
+						setBlock(x, y - 2, HILL_TOP_RIGHT_IN);
+				}
+			}
+			
+			floorHeight[x] = floor;
+			padSize++;
+			
+			// once minimum length reached, alter height by some chance
+			if (padSize > minPadLength && random.nextInt(changeProbability) != 0) {
+				floor += random.nextInt(heightVariance*2+1) - heightVariance;
+				padSize = 0;
+			}
+		}
+
+		return length;
+	}
+	
+	/* 
+	 * Scatters pits throughout the map. The higher the modifier, the more
+	 * frequent and large the pits become. Pits will not be created if its
+	 * edges are near an elevation change. This prevents unwanted graphical
+	 * errors.
+	 */
+	private int addPits(int zoneStart, int maxLength, double modifier) {
+		int length = maxLength;
+		
+		// ensure we don't get any divide-by-zero errors
+		if (modifier <= 0) { modifier = 0.01; }
+		
+		int pitProbability = (int)(Math.round(3*(1.0/Math.pow(modifier,3)))) + 1;
+		int pitWidth = (int)(Math.round(2*modifier)) + 2; // cannot exceed min pad length
+		
+		// find location to create pit
+		for (int x = zoneStart; x < zoneStart + length; x++) {
+			if (random.nextInt(pitProbability) == 0) {
+				
+				// avoid graphical issue with single ground blocks
+				if (!pad[x] && !pad[x-1] && !pad[x+pitWidth+2] && !pad[x+pitWidth+3]) {
+					
+					// create pit
+					for (int pit = x+1; pit < x+1+pitWidth; pit++) {
+						for (int y = floorHeight[pit]; y <= height; y++) {
+							setBlock(pit, y, (byte) 0); // empty block
+						}
+						
+						floorHeight[pit] = height;
+						debug[pit] = 2;
+					}
+				}
+				
+				pits++; // keep track of these, just cuz
+				x += pitWidth+1; // ensure no side-by-side pits
+			}
+		}
+		
+		return length;
+	}
+	
 	private int buildJump(int xo, int maxLength) {
-		gaps++;
+		pits++;
 		// jl: jump length
 		// js: the number of blocks that are available at either side for free
 		int js = random.nextInt(4) + 2;
@@ -242,12 +384,12 @@ public class MyLevel extends Level
 						for (int y = hillHeight; y < floor; y++) {
 							int xx = 5;
 							if (x == hillStart)
-								xx = 4;// if on start edge draw edge block
+								xx = 4; // if on start edge draw edge block
 							if (x == hillStart + hillWidth - 1)
-								xx = 6;// if on end edge, draw edge block
+								xx = 6; // if on end edge, draw edge block
 							int yy = 9;
 							if (y == hillHeight)
-								yy = 8;// if on top draw top edge block
+								yy = 8; // if on top draw top edge block
 
 							if (getBlock(x, y) == 0 || getBlock(x, y) == (5 + 9 * 16)) {
 								setBlock(x, y, (byte) (xx + yy * 16));
@@ -372,44 +514,6 @@ public class MyLevel extends Level
 				decorate(xo, xo + length, floor);
 			}
 		}
-
-		return length;
-	}
-
-	private int buildFlat(int xo, int maxLength, boolean safe) {
-		int length = random.nextInt(10) + 2;
-
-		if (length > maxLength)
-			length = maxLength;
-
-		int floor = curFloorHeight += ((random.nextInt(2) == 0) ? 1 : -1);
-
-		if (floor < 2) {
-			curFloorHeight = floor = 2;
-		}
-		if (floor > height - 1) {
-			curFloorHeight = floor = height - 1;
-		}
-
-		// runs from the specified x position to the length of the segment
-		for (int x = xo; x < xo + length; x++) {
-			for (int y = 0; y < height; y++) {
-				if (y >= floor) {
-					setBlock(x, y, GROUND);
-					if (getBlock(x, y) == HILL_TOP_LEFT)
-						setBlock(x, y - 2, HILL_TOP_LEFT_IN);
-					if (getBlock(x, y) == HILL_TOP_RIGHT)
-						setBlock(x, y - 2, HILL_TOP_RIGHT_IN);
-				}
-			}
-		}
-
-		/*
-		 * if (!safe) { type = 0;
-		 * 
-		 * for (int x = xo; x < xo + length; x++) { setSpriteTemplate(x, floor-1, new SpriteTemplate(type, false));
-		 * ENEMIES++; } }
-		 */
 
 		return length;
 	}
