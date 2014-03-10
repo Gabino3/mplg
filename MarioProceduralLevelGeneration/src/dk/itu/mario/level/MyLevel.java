@@ -73,7 +73,9 @@ public class MyLevel extends Level{
 				//length += buildTubes(length, width-length);
 				//length += buildCannons(length, width-length);
 	        	//length += buildFlat(length, width-length, true);
-	        	length += buildGap(length, width-length, 1);
+
+	        	length += buildTubes(length, width-length);
+
 	        }
 	        
 
@@ -318,22 +320,23 @@ public class MyLevel extends Level{
 	        }
 	    }
 
-	    private int buildTubes(int xo, int maxLength)
+	    private int buildTubes(int zoneStart, int maxLength)
 	    {
 	        int length = random.nextInt(10) + 5;
 	        if (length > maxLength) length = maxLength;
 
 	        int floor = height - 1 - random.nextInt(4);
-	        int xTube = xo + 1 + random.nextInt(4);
+	        int xTube = zoneStart + 1 + random.nextInt(4);
 	        int tubeHeight = floor - random.nextInt(2) - 2;
-	        for (int x = xo; x < xo + length; x++)
+	        
+	        for (int x = zoneStart; x < zoneStart + length; x++)
 	        {
 	            if (x > xTube + 1)
 	            {
-	                xTube += 3 + random.nextInt(4);
-	                tubeHeight = floor - random.nextInt(2) - 2;
+	                xTube += 3 + random.nextInt(4); // 3-6 spaces between tubes
+	                tubeHeight = floor - random.nextInt(2) - 2; // tubes 2-3 blocks high
 	            }
-	            if (xTube >= xo + length - 2) xTube += 10;
+	            if (xTube >= zoneStart + length - 2) xTube += 10;
 
 	            if (x == xTube && random.nextInt(11) < difficulty + 1)
 	            {
@@ -345,8 +348,7 @@ public class MyLevel extends Level{
 	            {
 	                if (y >= floor)
 	                {
-	                    setBlock(x, y,GROUND);
-
+	                    setBlock(x, y, GROUND);
 	                }
 	                else
 	                {
