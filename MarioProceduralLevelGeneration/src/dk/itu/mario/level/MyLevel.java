@@ -13,6 +13,7 @@ import dk.itu.mario.engine.sprites.Enemy;
 
 public class MyLevel extends Level
 {
+	//
 	// Store information about the level
 	public int ENEMIES = 0; // the number of enemies the level contains
 	public int BLOCKS_EMPTY = 0; // the number of empty blocks
