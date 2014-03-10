@@ -24,6 +24,7 @@ public class MyLevel extends Level
 	private boolean[] hillEdge;
 	private List<Hill> hills;
 	private int[] floorHeight;
+	private int[] hillHeight;
 	private boolean[] pad;
 	private int[] debug;
 
@@ -52,6 +53,8 @@ public class MyLevel extends Level
 		hillEdge = new boolean[width];
 		hills = new ArrayList<Hill>();
 		floorHeight = new int[width];
+		hillHeight = new int[width];
+		Arrays.fill(hillHeight, height+1);
 		pad = new boolean[width];
 		debug = new int[width];
 
@@ -82,11 +85,13 @@ public class MyLevel extends Level
 		
 		double terrainModifier = random.nextDouble();
 		double pitModifier = random.nextDouble();
+		double hillModifier = random.nextDouble();
 		
-		System.out.printf("Modifiers:\n----------------\nter:\t%f\npit:\t%f\n", terrainModifier, pitModifier);
+		System.out.printf("Modifiers:\n----------------\nter:\t%f\npit:\t%f\nhill:\t%f\n\n", terrainModifier, pitModifier, hillModifier);
 		
 		buildTerrain(length, width-length-12, terrainModifier); // 12 = 8 for end + gap
 		addPits(length, width-length-12, pitModifier);
+		addHills(length, width-length-12, hillModifier);
 		length += width-length-12;
 
 		// set the end piece
@@ -123,8 +128,9 @@ public class MyLevel extends Level
 		}
 
 		fixWalls();
+		fixCorners();
 		
-		System.out.println(Arrays.toString(debug));
+		System.out.println(Arrays.toString(hillHeight));
 	}
 
 	/*
@@ -236,7 +242,8 @@ public class MyLevel extends Level
 							setBlock(pit, y, (byte) 0); // empty block
 						}
 						
-						floorHeight[pit] = height;
+						floorHeight[pit] = height+1;
+						pad[pit] = false;
 						debug[pit] = 2;
 					}
 				}
@@ -247,6 +254,134 @@ public class MyLevel extends Level
 		}
 		
 		return length;
+	}
+	
+	private int addHills(int zoneStart, int maxLength, double modifier) {
+		int length = maxLength;
+		
+		int hillAttempts = (int)Math.round(modifier*maxLength);
+		int minWidth = 3;
+		int maxWidth = 7;
+		
+		// randomly disperse hills around map based on modifier
+		for (int att = 0; att < hillAttempts; att++) {
+			int start = random.nextInt(maxLength) + zoneStart;
+			
+			List<Hill> possibleHills = new ArrayList<Hill>();
+			
+			// left side not on hill edge, elevation change, or near pad start
+			if (!hillEdge[start] && !hillEdge[start-1] && floorHeight[start] == floorHeight[start-1] && !pad[start-1]) {
+				
+				// attempt all possible widths
+				for (int width = minWidth; width <= maxWidth; width++) {
+					
+					boolean validLocation = true;
+					int heightMod = 4;
+					
+					// right side valid
+					if (start+width <= zoneStart+maxLength && !hillEdge[start+width-1] && !hillEdge[start+width]) {
+						
+						// ensure edges not on elevation change
+						if (floorHeight[start+width-1] != floorHeight[start+width]) {
+							validLocation = false;
+						}
+						
+						// ensure not near pad start
+						if (pad[start+width]) {
+							validLocation = false;
+						}
+						
+						// ensure not over a pit
+						for (int x = start; x < start + width; x++) {
+							if (floorHeight[x] == height+1) {
+								validLocation = false;
+								break;
+							}
+							
+							// TODO adapt height based on nearby hills
+							if (hillHeight[x] != height+1 && floorHeight[start]-heightMod >= hillHeight[x]) {
+								heightMod = hillHeight[x]-3;
+								if (floorHeight[start]-heightMod <= 0) {
+									validLocation = false;
+									break;
+								}
+							}
+						}
+						
+					} else {
+						validLocation = false;
+					}
+					
+					if (validLocation) {
+						possibleHills.add(new Hill(start, width, heightMod));
+					}
+				}
+			}
+			
+			if (!possibleHills.isEmpty()) {
+				// select hill at random
+				Hill hill = possibleHills.get(random.nextInt(possibleHills.size()));
+				int width = hill.width();
+				int hillStart = hill.start();
+				hills.add(hill);
+
+				int height = floorHeight[hillStart]-hill.height();
+				
+				// construct hill
+				hillEdge[hillStart] = true;
+				hillEdge[hillStart + width] = true;
+				for (int x = hillStart; x < hillStart + width; x++) {
+					
+					hillHeight[x] = height;
+					for (int y = height; y < floorHeight[x]; y++) {
+						int xx = 5;
+						if (x == hillStart)
+							xx = 4; // if on start edge draw edge block
+						if (x == hillStart + width - 1)
+							xx = 6; // if on end edge, draw edge block
+						int yy = 9;
+						if (y == height)
+							yy = 8; // if on top draw top edge block
+
+						if (getBlock(x, y) == 0 || getBlock(x, y) == (5 + 9 * 16)) {
+							setBlock(x, y, (byte) (xx + yy * 16));
+						} else {
+							if (getBlock(x, y) == HILL_TOP_LEFT)
+								setBlock(x, y, HILL_TOP_LEFT_IN);
+							if (getBlock(x, y) == HILL_TOP_RIGHT)
+								setBlock(x, y, HILL_TOP_RIGHT_IN);
+						}
+					}
+				}
+			}
+		}
+		
+		return length;
+	}
+	
+	/*
+	 * Iteratively goes through the generated world and fixes a graphical issue
+	 * where terrain corners in front of hills wouldn't be filled in.
+	 */
+	private void fixCorners() {
+		
+		for (int x = 0; x < width + 1; x++) {
+			for (int y = 0; y < height + 1; y++) {
+				
+				// if corner in front of hill
+				if (getBlock(x, y) == LEFT_UP_GRASS_EDGE || getBlock(x, y) == RIGHT_UP_GRASS_EDGE) {
+					if(getBlock(x, y-1) == HILL_FILL || getBlock(x, y-1) == HILL_RIGHT || getBlock(x, y-1) == HILL_LEFT || getBlock(x, y-1) == HILL_TOP) {
+						
+						// replace with appropriate filled corner tile
+						if (getBlock(x, y) == LEFT_UP_GRASS_EDGE) {
+							setBlock(x, y, (byte)(0 + 11 * 16));
+						} else {
+							setBlock(x, y, (byte)(2 + 11 * 16));
+						}
+					}
+				}
+			}
+		}
 	}
 	
 	private int buildJump(int xo, int maxLength) {
@@ -323,6 +458,7 @@ public class MyLevel extends Level
 		return length;
 	}
 
+	/*
 	private int buildHillStraight(int zoneStart, int maxLength) {
 		int length = random.nextInt(10) + 10;
 		if (length > maxLength)
@@ -408,15 +544,16 @@ public class MyLevel extends Level
 		}
 
 		return length;
-	}
+	}*/
 
 	private class Hill
 	{
-		private int start, width;
+		private int start, width, height;
 
-		public Hill(int start, int width) {
+		public Hill(int start, int width, int height) {
 			this.start = start;
 			this.width = width;
+			this.height = height;
 		}
 
 		public int start() {
@@ -425,6 +562,10 @@ public class MyLevel extends Level
 
 		public int width() {
 			return width;
+		}
+		
+		public int height() {
+			return height;
 		}
 	}
 
