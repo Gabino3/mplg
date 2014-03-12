@@ -20,12 +20,12 @@ public class MyLevel extends Level
 	public int BLOCKS_COINS = 0; // the number of coin blocks
 	public int BLOCKS_POWER = 0; // the number of power blocks
 	public int COINS = 0; // These are the coins in boxes that Mario collect
-
+	
 	private int curFloorHeight;
 	private boolean[] hillEdge;
 	private List<Hill> hills;
 	private int[] floorHeight;
-	private int[] hillHeight;
+	private int[] peak;
 	private boolean[] pad;
 	private int[] debug;
 
@@ -54,8 +54,8 @@ public class MyLevel extends Level
 		hillEdge = new boolean[width];
 		hills = new ArrayList<Hill>();
 		floorHeight = new int[width];
-		hillHeight = new int[width];
-		Arrays.fill(hillHeight, height+1);
+		peak = new int[width];
+		Arrays.fill(peak, height+1);
 		pad = new boolean[width];
 		debug = new int[width];
 
@@ -140,7 +140,7 @@ public class MyLevel extends Level
 		fixCorners();
 		
 		System.out.println(Arrays.toString(floorHeight));
-		System.out.println(Arrays.toString(hillHeight));
+		System.out.println(Arrays.toString(peak));
 	}
 
 	/*
@@ -167,7 +167,7 @@ public class MyLevel extends Level
 				}
 			}
 			floorHeight[x] = floor;
-			hillHeight[x] = floor;
+			peak[x] = floor;
 		}
 
 		return length;
@@ -213,7 +213,7 @@ public class MyLevel extends Level
 			}
 			
 			floorHeight[x] = floor;
-			hillHeight[x] = floor;
+			peak[x] = floor;
 			padSize++;
 			
 			// once minimum length reached, alter height by some chance
@@ -255,7 +255,7 @@ public class MyLevel extends Level
 						}
 						
 						floorHeight[pit] = height+1;
-						hillHeight[pit] = height+1;
+						peak[pit] = height+1;
 						pad[pit] = false;
 						debug[pit] = 2;
 					}
@@ -270,6 +270,49 @@ public class MyLevel extends Level
 	}
 	
 	private int addHills(int zoneStart, int maxLength, double modifier) {
+		/*
+		int length = maxLength;
+		
+		int hillAttempts = (int)(Math.round(modifier*maxLength));
+		int minWidth = 4;
+		int maxWidth = 6;
+		
+		for (int att = 0; att < hillAttempts; att++) {
+			int hillLeft = random.nextInt(maxLength) + zoneStart;
+			
+			List<Hill> possibleHills = new ArrayList<Hill>();
+			
+			if (!nearPit(hillLeft) && !hillEdge[hillLeft] && !nearElevationChange(hillLeft, true)) {
+			
+				for (int hillWidth = minWidth; hillWidth <= maxWidth; hillWidth++) {
+					
+					boolean validHill = true;
+					int hillRight = hillLeft + hillWidth;
+					//int hillHeight = random.nextInt(3) + 2;
+					
+					if (nearPit(hillRight) || hillEdge[hillRight] || nearElevationChange(hillRight, false)) {
+						validHill = false;
+					}
+					
+					for (int x = hillLeft; x <= hillRight; x++) {
+						if (isPit(x)) {
+							validHill = false;
+							break;
+						}
+						
+						
+					}
+					
+					if (validHill) {
+						//possibleHills.add(new Hill(hillLeft, hillWidth, hillHeight));
+					}
+				}
+			}
+		}
+		
+		return length;
+		*/	
+		
 		int length = maxLength;
 		
 		int hillAttempts = (int)(Math.round(modifier*maxLength));
@@ -284,7 +327,7 @@ public class MyLevel extends Level
 			
 			// left side not on hill edge, elevation change, or near pad start
 			//if (!hillEdge[start] && !hillEdge[start-1] && floorHeight[start] == floorHeight[start-1] && !pad[start-1]) {
-			if (!hillEdge[start] && !hillEdge[start-1] && hillHeight[start] == hillHeight[start-1] && !pad[start-1]) {
+			if (!hillEdge[start] && !hillEdge[start-1] && peak[start] == peak[start-1] && !pad[start-1]) {
 				
 				// attempt all possible widths
 				for (int width = minWidth; width <= maxWidth; width++) {
@@ -297,7 +340,7 @@ public class MyLevel extends Level
 						
 						// ensure edges not on elevation change
 						//if (floorHeight[start+width-1] != floorHeight[start+width]) {
-						if (hillHeight[start+width-1] != hillHeight[start+width]) {
+						if (peak[start+width-1] != peak[start+width]) {
 							validLocation = false;
 						}
 						
@@ -313,32 +356,13 @@ public class MyLevel extends Level
 								break;
 							}
 							
-							if (hillHeight[x] != height + 1 && hillHeight[start]-heightMod >= hillHeight[x]) {
-								heightMod = hillHeight[x] - 2 - random.nextInt(3);
-								if (hillHeight[x]-heightMod <= 2) {
+							if (peak[x] != height + 1 && peak[start]-heightMod >= peak[x]) {
+								heightMod = peak[x] - 2 - random.nextInt(3);
+								if (peak[x]-heightMod <= 2) {
 									validLocation = false;
 									break;
 								}
 							}
-							
-							/*
-							if (floorHeight[start]-heightMod >= floorHeight[x]) {
-								heightMod = floorHeight[x] - 2 - random.nextInt(3); //-= (2 + random.nextInt(3)); //floorHeight[x] - 2 - random.nextInt(3);
-								if (floorHeight[start]-heightMod <= 0) {
-									validLocation = false;
-									break;
-								}
-							}
-							
-							// TODO choose whether floor or hill height more important to examine - no impossible hills plz
-							if (hillHeight[x] != height+1 && hillHeight[start]-heightMod >= hillHeight[x]) {
-								heightMod = hillHeight[x] - 2 - random.nextInt(3);//(2 + random.nextInt(3)); //hillHeight[x] - 2 - random.nextInt(3);
-								if (floorHeight[start]-heightMod <= 0) {
-									validLocation = false;
-									break;
-								}
-							}
-							*/
 						}
 						
 					} else {
@@ -359,14 +383,14 @@ public class MyLevel extends Level
 				int hillStart = hill.start();
 				hills.add(hill);
 
-				int height = hillHeight[hillStart]-hill.height();//floorHeight[hillStart]-hill.height();
+				int height = peak[hillStart]-hill.height();//floorHeight[hillStart]-hill.height();
 				
 				// construct hill
 				hillEdge[hillStart] = true;
 				hillEdge[hillStart + width] = true;
 				for (int x = hillStart; x < hillStart + width; x++) {
 					
-					hillHeight[x] = height;
+					peak[x] = height;
 					for (int y = height; y < floorHeight[x]; y++) {
 						int xx = 5;
 						if (x == hillStart)
@@ -391,6 +415,22 @@ public class MyLevel extends Level
 		}
 		
 		return length;
+	}
+	
+	private boolean nearPit(int x) {
+		return (isPit(x) || isPit(x-1) || isPit(x+1));
+	}
+	
+	private boolean isPit(int x) {
+		return (floorHeight[x-1] == height+1);
+	}
+	
+	private boolean nearElevationChange(int x, boolean left) {
+		if (left) {
+			return (floorHeight[x-1] != floorHeight[x]);
+		}
+		
+		return (floorHeight[x+1] != floorHeight[x]);
 	}
 	
 	/*
