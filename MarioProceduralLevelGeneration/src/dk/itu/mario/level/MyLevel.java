@@ -88,6 +88,14 @@ public class MyLevel extends Level
 		double pitModifier = random.nextDouble();
 		double hillModifier = random.nextDouble();
 		
+		// TODO NOT a good way to adjust weights
+		// - Ex: if player is bad at -everything-, they may still be faced with
+		//   a course they cannot complete
+		/*double totalModifier = terrainModifier + pitModifier + hillModifier;
+		terrainModifier /= totalModifier;
+		pitModifier /= totalModifier;
+		hillModifier /= totalModifier;*/
+		
 		System.out.printf("Modifiers:\n----------------\nter:\t%f\npit:\t%f\nhill:\t%f\n\n", terrainModifier, pitModifier, hillModifier);
 		
 		buildTerrain(length, width-length-12, terrainModifier); // 12 = 8 for end + gap
@@ -131,6 +139,7 @@ public class MyLevel extends Level
 		fixWalls();
 		fixCorners();
 		
+		System.out.println(Arrays.toString(floorHeight));
 		System.out.println(Arrays.toString(hillHeight));
 	}
 
@@ -158,6 +167,7 @@ public class MyLevel extends Level
 				}
 			}
 			floorHeight[x] = floor;
+			hillHeight[x] = floor;
 		}
 
 		return length;
@@ -203,6 +213,7 @@ public class MyLevel extends Level
 			}
 			
 			floorHeight[x] = floor;
+			hillHeight[x] = floor;
 			padSize++;
 			
 			// once minimum length reached, alter height by some chance
@@ -244,6 +255,7 @@ public class MyLevel extends Level
 						}
 						
 						floorHeight[pit] = height+1;
+						hillHeight[pit] = height+1;
 						pad[pit] = false;
 						debug[pit] = 2;
 					}
@@ -260,9 +272,9 @@ public class MyLevel extends Level
 	private int addHills(int zoneStart, int maxLength, double modifier) {
 		int length = maxLength;
 		
-		int hillAttempts = (int)Math.round(modifier*maxLength);
-		int minWidth = 3;
-		int maxWidth = 7;
+		int hillAttempts = (int)(Math.round(modifier*maxLength));
+		int minWidth = 4;
+		int maxWidth = 6;
 		
 		// randomly disperse hills around map based on modifier
 		for (int att = 0; att < hillAttempts; att++) {
@@ -271,19 +283,21 @@ public class MyLevel extends Level
 			List<Hill> possibleHills = new ArrayList<Hill>();
 			
 			// left side not on hill edge, elevation change, or near pad start
-			if (!hillEdge[start] && !hillEdge[start-1] && floorHeight[start] == floorHeight[start-1] && !pad[start-1]) {
+			//if (!hillEdge[start] && !hillEdge[start-1] && floorHeight[start] == floorHeight[start-1] && !pad[start-1]) {
+			if (!hillEdge[start] && !hillEdge[start-1] && hillHeight[start] == hillHeight[start-1] && !pad[start-1]) {
 				
 				// attempt all possible widths
 				for (int width = minWidth; width <= maxWidth; width++) {
 					
 					boolean validLocation = true;
-					int heightMod = 4;
+					int heightMod = random.nextInt(3) + 2;//4;
 					
 					// right side valid
 					if (start+width <= zoneStart+maxLength && !hillEdge[start+width-1] && !hillEdge[start+width]) {
 						
 						// ensure edges not on elevation change
-						if (floorHeight[start+width-1] != floorHeight[start+width]) {
+						//if (floorHeight[start+width-1] != floorHeight[start+width]) {
+						if (hillHeight[start+width-1] != hillHeight[start+width]) {
 							validLocation = false;
 						}
 						
@@ -299,14 +313,32 @@ public class MyLevel extends Level
 								break;
 							}
 							
-							// TODO adapt height based on nearby hills
-							if (hillHeight[x] != height+1 && floorHeight[start]-heightMod >= hillHeight[x]) {
-								heightMod = hillHeight[x]-3;
+							if (hillHeight[x] != height + 1 && hillHeight[start]-heightMod >= hillHeight[x]) {
+								heightMod = hillHeight[x] - 2 - random.nextInt(3);
+								if (hillHeight[x]-heightMod <= 2) {
+									validLocation = false;
+									break;
+								}
+							}
+							
+							/*
+							if (floorHeight[start]-heightMod >= floorHeight[x]) {
+								heightMod = floorHeight[x] - 2 - random.nextInt(3); //-= (2 + random.nextInt(3)); //floorHeight[x] - 2 - random.nextInt(3);
 								if (floorHeight[start]-heightMod <= 0) {
 									validLocation = false;
 									break;
 								}
 							}
+							
+							// TODO choose whether floor or hill height more important to examine - no impossible hills plz
+							if (hillHeight[x] != height+1 && hillHeight[start]-heightMod >= hillHeight[x]) {
+								heightMod = hillHeight[x] - 2 - random.nextInt(3);//(2 + random.nextInt(3)); //hillHeight[x] - 2 - random.nextInt(3);
+								if (floorHeight[start]-heightMod <= 0) {
+									validLocation = false;
+									break;
+								}
+							}
+							*/
 						}
 						
 					} else {
@@ -320,13 +352,14 @@ public class MyLevel extends Level
 			}
 			
 			if (!possibleHills.isEmpty()) {
+				
 				// select hill at random
 				Hill hill = possibleHills.get(random.nextInt(possibleHills.size()));
 				int width = hill.width();
 				int hillStart = hill.start();
 				hills.add(hill);
 
-				int height = floorHeight[hillStart]-hill.height();
+				int height = hillHeight[hillStart]-hill.height();//floorHeight[hillStart]-hill.height();
 				
 				// construct hill
 				hillEdge[hillStart] = true;
@@ -371,7 +404,9 @@ public class MyLevel extends Level
 				
 				// if corner in front of hill
 				if (getBlock(x, y) == LEFT_UP_GRASS_EDGE || getBlock(x, y) == RIGHT_UP_GRASS_EDGE) {
-					if(getBlock(x, y-1) == HILL_FILL || getBlock(x, y-1) == HILL_RIGHT || getBlock(x, y-1) == HILL_LEFT || getBlock(x, y-1) == HILL_TOP) {
+					if(getBlock(x, y-1) == HILL_FILL || getBlock(x, y-1) == HILL_RIGHT || getBlock(x, y-1) == HILL_LEFT
+					   || getBlock(x, y-1) == HILL_TOP || getBlock(x, y-1) == HILL_TOP_LEFT
+					   || getBlock(x, y-1) == HILL_TOP_RIGHT) {
 						
 						// replace with appropriate filled corner tile
 						if (getBlock(x, y) == LEFT_UP_GRASS_EDGE) {
