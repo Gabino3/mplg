@@ -650,6 +650,118 @@ public class MyLevel extends Level
 
 		return length;
 	}
+	
+	
+	private int addTubes(int zoneStart, int maxLength, double modifier) {
+		int length = maxLength;
+		
+		int tubeFrequency = (int)(Math.round(modifier*maxLength));
+		int minWidth = 4;
+		int maxWidth = 6;
+		
+		
+		// randomly disperse tubes around map based on modifier
+		for (int att = 0; att < tubeFrequency; att++) {
+			int start = random.nextInt(maxLength) + zoneStart;
+			
+			List<Hill> possibleHills = new ArrayList<Hill>();
+			
+			// left side not on hill edge, elevation change, or near pad start
+			if (!hillEdge[start] && !hillEdge[start-1] && hillHeight[start] == hillHeight[start-1] && !pad[start-1]) {
+				
+				
+					
+					boolean validLocation = true;
+					int heightMod = random.nextInt(3) + 2;//4;
+					
+					// right side valid
+					if (start+width <= zoneStart+maxLength && !hillEdge[start+width-1] && !hillEdge[start+width]) {
+						
+						// ensure edges not on elevation change
+						//if (floorHeight[start+width-1] != floorHeight[start+width]) {
+						if (hillHeight[start+width-1] != hillHeight[start+width]) {
+							validLocation = false;
+						}
+						
+						// ensure not near pad start
+						if (pad[start+width]) {
+							validLocation = false;
+						}
+						
+						// ensure not over a pit
+						for (int x = start; x < start + width; x++) {
+							if (floorHeight[x] == height+1) {
+								validLocation = false;
+								break;
+							}
+							
+							if (hillHeight[x] != height + 1 && hillHeight[start]-heightMod >= hillHeight[x]) {
+								heightMod = hillHeight[x] - 2 - random.nextInt(3);
+								if (hillHeight[x]-heightMod <= 2) {
+									validLocation = false;
+									break;
+								}
+							}
+							
+							
+						}
+						
+					} else {
+						validLocation = false;
+					}
+					
+					if (validLocation) {
+						possibleHills.add(new Hill(start, width, heightMod));
+					}
+				}
+			}
+			
+			if (!possibleHills.isEmpty()) {
+				
+				// select hill at random
+				Hill hill = possibleHills.get(random.nextInt(possibleHills.size()));
+				int width = hill.width();
+				int hillStart = hill.start();
+				hills.add(hill);
+
+				int height = hillHeight[hillStart]-hill.height();//floorHeight[hillStart]-hill.height();
+				
+				// construct hill
+				hillEdge[hillStart] = true;
+				hillEdge[hillStart + width] = true;
+				for (int x = hillStart; x < hillStart + width; x++) {
+					
+					hillHeight[x] = height;
+					for (int y = height; y < floorHeight[x]; y++) {
+						int xx = 5;
+						if (x == hillStart)
+							xx = 4; // if on start edge draw edge block
+						if (x == hillStart + width - 1)
+							xx = 6; // if on end edge, draw edge block
+						int yy = 9;
+						if (y == height)
+							yy = 8; // if on top draw top edge block
+
+						if (getBlock(x, y) == 0 || getBlock(x, y) == (5 + 9 * 16)) {
+							setBlock(x, y, (byte) (xx + yy * 16));
+						} else {
+							if (getBlock(x, y) == HILL_TOP_LEFT)
+								setBlock(x, y, HILL_TOP_LEFT_IN);
+							if (getBlock(x, y) == HILL_TOP_RIGHT)
+								setBlock(x, y, HILL_TOP_RIGHT_IN);
+						}
+					}
+				}
+			}
+		}
+		
+		return length;
+	}
+	
+	
+	
+	
+	
 
 	private int buildStraight(int xo, int maxLength, boolean safe) {
 		int length = random.nextInt(10) + 2;
