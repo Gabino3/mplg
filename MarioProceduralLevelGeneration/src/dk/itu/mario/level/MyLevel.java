@@ -21,8 +21,6 @@ public class MyLevel extends Level
 	public int BLOCKS_POWER = 0; // the number of power blocks
 	public int COINS = 0; // These are the coins in boxes that Mario collect
 	
-	private int curFloorHeight;
-	private boolean[] hillEdge;
 	private List<Hill> hills;
 	private int[] floorHeight;
 	private int[] peak;
@@ -40,18 +38,15 @@ public class MyLevel extends Level
 
 	public MyLevel(int width, int height) {
 		super(width, height);
-		curFloorHeight = height;
 	}
 
 	public MyLevel(int width, int height, long seed, int difficulty, int type, GamePlay playerMetrics) {
 		this(width, height);
-		curFloorHeight = height;
 		creat(seed, difficulty, type);
 	}
 
 	public void creat(long seed, int difficulty, int type) {
 		// width = 128;
-		hillEdge = new boolean[width];
 		hills = new ArrayList<Hill>();
 		floorHeight = new int[width];
 		peak = new int[width];
@@ -250,7 +245,7 @@ public class MyLevel extends Level
 	 * Scatters hills throughout the map. Hills cannot reside next to other
 	 * hills or elevation changes, in pits, or within other hills. If a hill is
 	 * lower than surrounding hills, it's height is adjusted to appropriately
-	 * tower over the others, creating asthetically pleasing mountain ranges
+	 * tower over the others, creating aesthetically pleasing mountain ranges
 	 * that are fully traversable.
 	 */
 	private int addHills(int zoneStart, int maxLength, double modifier) {
@@ -343,14 +338,25 @@ public class MyLevel extends Level
 		return length;
 	}
 	
+	/*
+	 * Returns whether or not x value is on or immediately near a pit.
+	 */
 	private boolean nearPit(int x) {
 		return (isPit(x) || isPit(x-1) || isPit(x+1));
 	}
 	
+	/*
+	 * Returns whether or not x value is on a pit.
+	 */
 	private boolean isPit(int x) {
 		return (floorHeight[x-1] == height+1);
 	}
 	
+	/*
+	 * Returns whether or not x value is on or immediately left/right of a pit.
+	 * If left is true, determine whether there is a change to the left of x,
+	 * otherwise determine whether there is a change to the right of x.
+	 */
 	private boolean nearElevationChange(int x, boolean left) {
 		if (left) {
 			return (floorHeight[x-1] != floorHeight[x]);
@@ -359,6 +365,11 @@ public class MyLevel extends Level
 		return (floorHeight[x+1] != floorHeight[x]);
 	}
 	
+	/*
+	 * Returns wether or not x value is on or immediately left/right of a hill
+	 * edge. If left is true, determine whether there is a change to the left
+	 * of x, otherwise determine whether there is a change to the right of x.
+	 */
 	private boolean nearHillEdge(int x, boolean left) {
 		if (left) {
 			return (peak[x-1] != peak[x]);
