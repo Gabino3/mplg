@@ -25,8 +25,14 @@ public class MyLevel extends Level
 	private List<GameElement> tubes;
 	private int[] floorHeight;
 	private int[] peak;
-	private boolean[] pad;
+	//private boolean[] pad;
 	private int[] debug;
+	
+	private final int EMPTY = 0;
+	private final int VISUAL = 1;
+	private final int BLOCKABLE = 2;
+	private final int SURFACE = 3;
+	private int[][] blocks;
 
 	private static Random levelSeedRandom = new Random();
 	public static long lastSeed;
@@ -53,9 +59,10 @@ public class MyLevel extends Level
 		floorHeight = new int[width];
 		peak = new int[width];
 		Arrays.fill(peak, height+1);
-		pad = new boolean[width];
 		debug = new int[width];
 
+		blocks = new int[height][width];
+		
 		this.type = type;
 		this.difficulty = difficulty;
 
@@ -174,7 +181,7 @@ public class MyLevel extends Level
 			
 			// mark where each "pad" starts for later use and debugging
 			if (padSize == 0 && floor != floorHeight[x-1]) {
-				pad[x] = true;
+				//pad[x] = true;
 				debug[x] = 1;
 			}
 			
@@ -222,17 +229,17 @@ public class MyLevel extends Level
 			if (random.nextInt(pitProbability) == 0) {
 				
 				// avoid graphical issue with single ground blocks
-				if (!pad[x] && !pad[x-1] && !pad[x+pitWidth+2] && !pad[x+pitWidth+3]) {
+				if (!nearElevationChange(x, true) && !nearElevationChange(x-1, true) && !nearElevationChange(x+pitWidth, false) && !nearElevationChange(x+pitWidth+1, false)) {
 					
 					// create pit
-					for (int pit = x+1; pit < x+1+pitWidth; pit++) {
+					for (int pit = x+1; pit <= x+pitWidth; pit++) {
 						for (int y = floorHeight[pit]; y <= height; y++) {
 							setBlock(pit, y, (byte) 0); // empty block
 						}
 						
 						floorHeight[pit] = height+1;
 						peak[pit] = height+1;
-						pad[pit] = false;
+						//pad[pit] = false;
 						debug[pit] = 2;
 					}
 				}
