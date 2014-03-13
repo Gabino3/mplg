@@ -21,12 +21,8 @@ public class MyLevel extends Level
 	public int BLOCKS_POWER = 0; // the number of power blocks
 	public int COINS = 0; // These are the coins in boxes that Mario collect
 	
-	private List<GameElement> hills;
-	private List<GameElement> tubes;
 	private int[] floorHeight;
 	private int[] peak;
-	//private boolean[] pad;
-	private int[] debug;
 	
 	private final int EMPTY = 0;
 	private final int VISUAL = 1;
@@ -53,13 +49,9 @@ public class MyLevel extends Level
 	}
 
 	public void creat(long seed, int difficulty, int type) {
-		// width = 128;
-		hills = new ArrayList<GameElement>();
-		tubes = new ArrayList<GameElement>();
 		floorHeight = new int[width];
 		peak = new int[width];
 		Arrays.fill(peak, height+1);
-		debug = new int[width];
 
 		blocks = new int[height][width];
 		
@@ -179,12 +171,6 @@ public class MyLevel extends Level
 			if (floor < maxHeight) { floor = maxHeight; }
 			if (floor > minHeight) { floor = minHeight; }
 			
-			// mark where each "pad" starts for later use and debugging
-			if (padSize == 0 && floor != floorHeight[x-1]) {
-				//pad[x] = true;
-				debug[x] = 1;
-			}
-			
 			for (int y = 0; y < height; y++) {
 				if (y >= floor) {
 					setBlock(x, y, GROUND);
@@ -239,8 +225,6 @@ public class MyLevel extends Level
 						
 						floorHeight[pit] = height+1;
 						peak[pit] = height+1;
-						//pad[pit] = false;
-						debug[pit] = 2;
 					}
 				}
 				
@@ -318,7 +302,6 @@ public class MyLevel extends Level
 				hillLeft = hill.start();
 				int hillRight = hillLeft + hillWidth - 1;
 				int hillHeight = hill.height();
-				hills.add(hill);
 				
 				// construct hill
 				for (int x = hillLeft; x <= hillRight; x++) {
@@ -452,7 +435,6 @@ public class MyLevel extends Level
 			// select and build one of the valid hills
 			if (!possibleTubes.isEmpty()) {
 				GameElement tube = possibleTubes.get(random.nextInt(possibleTubes.size()));
-				tubes.add(tube);
 				
 				for (int x = tube.start(); x <= tube.start()+1; x++) {
 					for (int y = tube.height(); y <= height; y++) {
