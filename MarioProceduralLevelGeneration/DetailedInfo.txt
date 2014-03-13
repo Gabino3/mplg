@@ -1,3 +1,40 @@
 StartTime = -17
-LittleState: StTime = -17 EdTime = 2982
-Totaltime = 2999
+Jump:  StTime = 16 EdTime = 32
+Jump:  StTime = 35 EdTime = 50
+RightMove: StTime = 10 EdTime = 42
+Jump:  StTime = 51 EdTime = 63
+Jump:  StTime = 83 EdTime = 98
+Jump:  StTime = 103 EdTime = 119
+Jump:  StTime = 122 EdTime = 135
+Jump:  StTime = 137 EdTime = 152
+Jump:  StTime = 156 EdTime = 172
+Jump:  StTime = 174 EdTime = 188
+Jump:  StTime = 191 EdTime = 206
+Jump:  StTime = 230 EdTime = 240
+Jump:  StTime = 242 EdTime = 256
+Jump:  StTime = 263 EdTime = 277
+Jump:  StTime = 279 EdTime = 291
+Jump:  StTime = 293 EdTime = 305
+Jump:  StTime = 307 EdTime = 321
+Jump:  StTime = 323 EdTime = 334
+Jump:  StTime = 337 EdTime = 347
+Jump:  StTime = 349 EdTime = 362
+Jump:  StTime = 365 EdTime = 377
+Jump:  StTime = 380 EdTime = 394
+Jump:  StTime = 397 EdTime = 406
+Jump:  StTime = 408 EdTime = 420
+Jump:  StTime = 422 EdTime = 434
+Jump:  StTime = 436 EdTime = 442
+Jump:  StTime = 474 EdTime = 485
+Jump:  StTime = 495 EdTime = 505
+Jump:  StTime = 521 EdTime = 534
+Jump:  StTime = 535 EdTime = 548
+RightMove: StTime = 256 EdTime = 334
+Jump:  StTime = 552 EdTime = 559
+Jump:  StTime = 580 EdTime = 591
+Jump:  StTime = 593 EdTime = 599
+Jump:  StTime = 618 EdTime = 624
+Totaltime = 641
+RightMove: StTime = 555 EdTime = 403
+RunState: StTime = 9 EdTime = 624
+LittleState: StTime = -17 EdTime = 624

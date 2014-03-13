@@ -21,7 +21,8 @@ public class MyLevel extends Level
 	public int BLOCKS_POWER = 0; // the number of power blocks
 	public int COINS = 0; // These are the coins in boxes that Mario collect
 	
-	private List<Hill> hills;
+	private List<GameElement> hills;
+	private List<GameElement> tubes;
 	private int[] floorHeight;
 	private int[] peak;
 	private boolean[] pad;
@@ -47,7 +48,8 @@ public class MyLevel extends Level
 
 	public void creat(long seed, int difficulty, int type) {
 		// width = 128;
-		hills = new ArrayList<Hill>();
+		hills = new ArrayList<GameElement>();
+		tubes = new ArrayList<GameElement>();
 		floorHeight = new int[width];
 		peak = new int[width];
 		Arrays.fill(peak, height+1);
@@ -67,12 +69,14 @@ public class MyLevel extends Level
 		double terrainModifier = random.nextDouble();
 		double pitModifier = random.nextDouble();
 		double hillModifier = random.nextDouble();
+		double tubeModifier = 0;//random.nextDouble();
 		
-		System.out.printf("Modifiers:\n----------------\nter:\t%f\npit:\t%f\nhill:\t%f\n\n", terrainModifier, pitModifier, hillModifier);
+		System.out.printf("Modifiers:\n----------------\nter:\t%f\npit:\t%f\nhill:\t%f\ntube:\t%f\n\n", terrainModifier, pitModifier, hillModifier, tubeModifier);
 		
 		buildTerrain(length, width-length-12, terrainModifier); // 12 = 8 for end + gap
 		addPits(length, width-length-12, pitModifier);
 		addHills(length, width-length-12, hillModifier);
+		addTubes(length, width-length-12, tubeModifier);
 		length += width-length-12;
 
 		// set the end piece
@@ -252,14 +256,14 @@ public class MyLevel extends Level
 		int length = maxLength;
 		int zoneEnd = zoneStart + maxLength;
 		
-		int hillAttempts = (int)(Math.round(modifier*maxLength));
+		int hillAttempts = (int)(Math.round(modifier*maxLength/3)); // TODO make maxLength-maxWidth instead of checking zoneEnd later
 		int minWidth = 4;
 		int maxWidth = 6;
 		
 		for (int att = 0; att < hillAttempts; att++) {
 			int hillLeft = random.nextInt(maxLength) + zoneStart;
 			
-			List<Hill> possibleHills = new ArrayList<Hill>();
+			List<GameElement> possibleHills = new ArrayList<GameElement>();
 			
 			// ensure valid left edge
 			if (!nearPit(hillLeft) && !nearHillEdge(hillLeft, true) && !nearElevationChange(hillLeft, true)) {
@@ -295,14 +299,14 @@ public class MyLevel extends Level
 					}
 					
 					if (validHill) {
-						possibleHills.add(new Hill(hillLeft, hillWidth, hillHeight));
+						possibleHills.add(new GameElement(hillLeft, hillWidth, hillHeight));
 					}
 				}
 			}
 			
 			// select and build one of the valid hills
 			if (!possibleHills.isEmpty()) {
-				Hill hill = possibleHills.get(random.nextInt(possibleHills.size()));
+				GameElement hill = possibleHills.get(random.nextInt(possibleHills.size()));
 				int hillWidth = hill.width();
 				hillLeft = hill.start();
 				int hillRight = hillLeft + hillWidth - 1;
@@ -405,6 +409,65 @@ public class MyLevel extends Level
 		}
 	}
 	
+	private int addTubes(int zoneStart, int maxLength, double modifier) {
+		int length = maxLength;
+		
+		int tubeAttempts = (int)(Math.round(modifier*maxLength));
+		
+		for (int att = 0; att < tubeAttempts; att++) {
+			int tubeLeft = zoneStart + random.nextInt(maxLength-1);
+			int tubeRight = tubeLeft+1;
+			
+			List<GameElement> possibleTubes = new ArrayList<GameElement>();
+			
+			// ensure valid edges
+			if (!nearPit(tubeLeft) && !nearHillEdge(tubeLeft, true) && !nearElevationChange(tubeLeft, true)
+				&& !nearPit(tubeRight) && !nearHillEdge(tubeRight, false) && !nearElevationChange(tubeRight, false)) {
+				
+				boolean validTube = true;
+				int tubeHeight = height + 1;
+				
+				for (int x = tubeLeft; x <= tubeRight; x++) {
+					if (tubeHeight >= floorHeight[x] - 1) {
+						tubeHeight = floorHeight[x] - (random.nextInt(2) + 2);
+						if (tubeHeight <= 1) {
+							validTube = false;
+							break;
+						}
+					}
+				}
+				
+				if (validTube) {
+					possibleTubes.add(new GameElement(tubeLeft, 2, tubeHeight));
+				}
+			}
+			
+			// select and build one of the valid hills
+			if (!possibleTubes.isEmpty()) {
+				GameElement tube = possibleTubes.get(random.nextInt(possibleTubes.size()));
+				tubes.add(tube);
+				
+				for (int x = tube.start(); x <= tube.start()+1; x++) {
+					for (int y = tube.height(); y <= height; y++) {
+						int xPic = 10 + x - tube.start();
+							
+						if (y == tube.height()) {
+							// tube top
+							setBlock(x, y, (byte) (xPic + 0 * 16));
+						} else {
+							// tube side
+							setBlock(x, y, (byte) (xPic + 1 * 16));
+						}
+						
+						peak[x] = tube.height();
+					}
+				}
+			}
+		}
+		
+		return length;
+	}
+	
 	private int buildJump(int xo, int maxLength) {
 		pits++;
 		// jl: jump length
@@ -479,99 +542,11 @@ public class MyLevel extends Level
 		return length;
 	}
 
-	/*
-	private int buildHillStraight(int zoneStart, int maxLength) {
-		int length = random.nextInt(10) + 10;
-		if (length > maxLength)
-			length = maxLength;
-
-		int floor = height - 1 - random.nextInt(4);
-		for (int x = zoneStart; x < zoneStart + length; x++) {
-			for (int y = 0; y < height; y++) {
-				if (y >= floor) {
-					setBlock(x, y, GROUND);
-				}
-			}
-		}
-
-		int hillHeight = floor;
-		boolean keepGoing = true;
-		boolean firstHill = true;
-
-		// attempt to add as many hills as possible
-		while (keepGoing) {
-			hillHeight = hillHeight - 2 - random.nextInt(3);
-
-			if (hillHeight <= 0) {
-				keepGoing = false;
-
-			} else {
-				int minWidth = 3;
-				int maxWidth = 7;
-
-				List<Hill> possibleHills = new ArrayList<Hill>();
-
-				// find all legal hills for the given height
-				for (int width = minWidth; width <= maxWidth; width++) {
-					for (int start = 1; start < length - width - 1; start++) {
-
-						if ((firstHill || (getBlock(start + zoneStart + width, floor - 1) == 0 || getBlock(start
-								+ zoneStart, floor - 1) == 0))
-								&& !hillEdge[start + zoneStart]
-								&& !hillEdge[start + zoneStart + width]
-								&& !hillEdge[start + zoneStart - 1] && !hillEdge[start + zoneStart + width + 1]) {
-							possibleHills.add(new Hill(start + zoneStart, width));
-						}
-					}
-				}
-
-				if (possibleHills.isEmpty()) {
-					keepGoing = false;
-				} else {
-					// select hill at random
-					Hill hill = possibleHills.get(random.nextInt(possibleHills.size()));
-					int hillWidth = hill.width();
-					int hillStart = hill.start();
-					hills.add(hill);
-
-					// construct hill
-					hillEdge[hillStart] = true;
-					hillEdge[hillStart + hillWidth] = true;
-					for (int x = hillStart; x < hillStart + hillWidth; x++) {
-						for (int y = hillHeight; y < floor; y++) {
-							int xx = 5;
-							if (x == hillStart)
-								xx = 4; // if on start edge draw edge block
-							if (x == hillStart + hillWidth - 1)
-								xx = 6; // if on end edge, draw edge block
-							int yy = 9;
-							if (y == hillHeight)
-								yy = 8; // if on top draw top edge block
-
-							if (getBlock(x, y) == 0 || getBlock(x, y) == (5 + 9 * 16)) {
-								setBlock(x, y, (byte) (xx + yy * 16));
-							} else {
-								if (getBlock(x, y) == HILL_TOP_LEFT)
-									setBlock(x, y, HILL_TOP_LEFT_IN);
-								if (getBlock(x, y) == HILL_TOP_RIGHT)
-									setBlock(x, y, HILL_TOP_RIGHT_IN);
-							}
-						}
-					}
-
-					firstHill = false;
-				}
-			}
-		}
-
-		return length;
-	}*/
-
-	private class Hill
+	private class GameElement
 	{
 		private int start, width, height;
 
-		public Hill(int start, int width, int height) {
+		public GameElement(int start, int width, int height) {
 			this.start = start;
 			this.width = width;
 			this.height = height;
@@ -648,14 +623,6 @@ public class MyLevel extends Level
 			}
 		}
 
-		return length;
-	}
-	
-	private int addTubes(int zoneStart, int maxLength, double modifier) {
-		int length = maxLength;
-			
-		// TODO add tube logic here
-		
 		return length;
 	}
 
