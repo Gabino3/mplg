@@ -24,10 +24,16 @@ public class MyLevel extends Level
 	private int[] floorHeight;
 	private int[] peak;
 	
+	// use
+	private final int TERRAIN = 0;
+	private final int HILL = 1;
+	private final int TUBE = 2;
+	// behavior
 	private final int EMPTY = 0;
 	private final int VISUAL = 1;
 	private final int BLOCKABLE = 2;
 	private final int SURFACE = 3;
+	// storage
 	private int[][] blocks;
 
 	private static Random levelSeedRandom = new Random();
@@ -116,6 +122,18 @@ public class MyLevel extends Level
 		
 		System.out.println(Arrays.toString(floorHeight));
 		System.out.println(Arrays.toString(peak));
+		
+		System.out.println();
+		
+		for (int y = 0; y < blocks.length; y++) {
+			for (int x = 0; x < blocks[0].length; x++) {
+				if (blocks[y][x] < 10) {
+					System.out.print(" ");
+				}
+				System.out.print(blocks[y][x] + ", ");
+			}
+			System.out.println();
+		}
 	}
 
 	/*
@@ -178,6 +196,14 @@ public class MyLevel extends Level
 						setBlock(x, y - 2, HILL_TOP_LEFT_IN);
 					if (getBlock(x, y) == HILL_TOP_RIGHT)
 						setBlock(x, y - 2, HILL_TOP_RIGHT_IN);
+					
+					if (y == floor) {
+						//blocks[y][x] = SURFACE;
+						saveBlockInfo(x, y, TERRAIN, SURFACE);
+					} else {
+						//blocks[y][x] = VISUAL;
+						saveBlockInfo(x, y, TERRAIN, VISUAL);
+					}
 				}
 			}
 			
@@ -215,12 +241,16 @@ public class MyLevel extends Level
 			if (random.nextInt(pitProbability) == 0) {
 				
 				// avoid graphical issue with single ground blocks
-				if (!nearElevationChange(x, true) && !nearElevationChange(x-1, true) && !nearElevationChange(x+pitWidth, false) && !nearElevationChange(x+pitWidth+1, false)) {
+				if (!nearElevationChange(x, true)
+					&& !nearElevationChange(x-1, true)
+					&& !nearElevationChange(x+pitWidth, false)
+					&& !nearElevationChange(x+pitWidth+1, false)) {
 					
 					// create pit
 					for (int pit = x+1; pit <= x+pitWidth; pit++) {
-						for (int y = floorHeight[pit]; y <= height; y++) {
+						for (int y = floorHeight[pit]; y < height; y++) {
 							setBlock(pit, y, (byte) 0); // empty block
+							saveBlockInfo(pit, y, TERRAIN, EMPTY);
 						}
 						
 						floorHeight[pit] = height+1;
@@ -318,6 +348,12 @@ public class MyLevel extends Level
 
 						if (getBlock(x, y) == 0 || getBlock(x, y) == (5 + 9 * 16)) {
 							setBlock(x, y, (byte) (xx + yy * 16));
+							if (y == hillHeight) {
+								saveBlockInfo(x, y, HILL, SURFACE);
+							} else {
+								saveBlockInfo(x, y, HILL, VISUAL);
+							}
+							
 						} else {
 							if (getBlock(x, y) == HILL_TOP_LEFT)
 								setBlock(x, y, HILL_TOP_LEFT_IN);
@@ -399,6 +435,27 @@ public class MyLevel extends Level
 		}
 	}
 	
+	/*
+	 * Saves a blocks use and behavior as a single integer in blocks[][].
+	 */
+	private void saveBlockInfo(int x, int y, int use, int behavior) {
+		blocks[y][x] = use * 10 + behavior;
+	}
+	
+	/*
+	 * Returns a block's use as recorded in blocks[][]. 
+	 */
+	private int blockUse(int x, int y) {
+		return blocks[y][x] / 10; 
+	}
+	
+	/*
+	 * Returns a block's behavior as recorded in blocks[][].
+	 */
+	private int blockBehavior(int x, int y) {
+		return blocks[y][x] % 10;
+	}
+	
 	private int addTubes(int zoneStart, int maxLength, double modifier) {
 		int length = maxLength;
 		
@@ -432,7 +489,7 @@ public class MyLevel extends Level
 				}
 			}
 			
-			// select and build one of the valid hills
+			// select and build one of the valid tubes
 			if (!possibleTubes.isEmpty()) {
 				GameElement tube = possibleTubes.get(random.nextInt(possibleTubes.size()));
 				
