@@ -31,7 +31,7 @@ public class MyLevel extends Level
 	// behavior
 	private final int EMPTY = 0;
 	private final int VISUAL = 1;
-	private final int BLOCKABLE = 2;
+	private final int BLOCKING = 2;
 	private final int SURFACE = 3;
 	// storage
 	private int[][] blocks;
@@ -74,7 +74,7 @@ public class MyLevel extends Level
 		double terrainModifier = random.nextDouble();
 		double pitModifier = random.nextDouble();
 		double hillModifier = random.nextDouble();
-		double tubeModifier = 0;//random.nextDouble();
+		double tubeModifier = random.nextDouble();
 		
 		System.out.printf("Modifiers:\n----------------\nter:\t%f\npit:\t%f\nhill:\t%f\ntube:\t%f\n\n", terrainModifier, pitModifier, hillModifier, tubeModifier);
 		
@@ -376,6 +376,19 @@ public class MyLevel extends Level
 	}
 	
 	/*
+	 * Returns whether or not their lies a pit between x1 and x2.
+	 */
+	private boolean nearPit(int x1, int x2) {
+		for (int x = x1 - 1; x <= x2 + 1; x++) {
+			if (isPit(x)) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	/*
 	 * Returns whether or not x value is on a pit.
 	 */
 	private boolean isPit(int x) {
@@ -383,9 +396,10 @@ public class MyLevel extends Level
 	}
 	
 	/*
-	 * Returns whether or not x value is on or immediately left/right of a pit.
-	 * If left is true, determine whether there is a change to the left of x,
-	 * otherwise determine whether there is a change to the right of x.
+	 * Returns whether or not x value is on or immediately left/right of an
+	 * elevation change on the map terrain. If left is true, determine whether
+	 * there is a change to the left of x, otherwise determine whether there is
+	 * a change to the right of x.
 	 */
 	private boolean nearElevationChange(int x, boolean left) {
 		if (left) {
@@ -393,6 +407,20 @@ public class MyLevel extends Level
 		}
 		
 		return (floorHeight[x+1] != floorHeight[x]);
+	}
+	
+	/* 
+	 * Returns whether or not there exists an elevation change anywhere between
+	 * x1-1 to x2+1 inclusive.
+	 */
+	private boolean nearElevationChange(int x1, int x2) {
+		for (int x = x1 - 1; x < x2 + 1; x++) {
+			if (floorHeight[x] != floorHeight[x+1]) {
+				return true;
+			}
+		}
+		
+		return false;
 	}
 	
 	/*
@@ -406,6 +434,20 @@ public class MyLevel extends Level
 		}
 		
 		return (peak[x+1] != peak[x]);
+	}
+	
+	/*
+	 * Returns whether or not there exists a hill edge anywhere between x1-1 to
+	 * x2+1 inclusive.
+	 */
+	private boolean nearHillEdge(int x1, int x2) {
+		for (int x = x1 - 1; x < x2 + 1; x++) {
+			if (peak[x] != peak[x+1]) {
+				return true;
+			}
+		}
+		
+		return false;
 	}
 	
 	/*
@@ -459,7 +501,7 @@ public class MyLevel extends Level
 	private int addTubes(int zoneStart, int maxLength, double modifier) {
 		int length = maxLength;
 		
-		int tubeAttempts = (int)(Math.round(modifier*maxLength));
+		int tubeAttempts = (int)(Math.round(modifier*maxLength)/4);
 		
 		for (int att = 0; att < tubeAttempts; att++) {
 			int tubeLeft = zoneStart + random.nextInt(maxLength-1);
@@ -468,8 +510,8 @@ public class MyLevel extends Level
 			List<GameElement> possibleTubes = new ArrayList<GameElement>();
 			
 			// ensure valid edges
-			if (!nearPit(tubeLeft) && !nearHillEdge(tubeLeft, true) && !nearElevationChange(tubeLeft, true)
-				&& !nearPit(tubeRight) && !nearHillEdge(tubeRight, false) && !nearElevationChange(tubeRight, false)) {
+			if (!nearPit(tubeLeft, tubeRight) && !nearElevationChange(tubeLeft, tubeRight)
+				&& !nearHillEdge(tubeLeft, tubeRight)) {
 				
 				boolean validTube = true;
 				int tubeHeight = height + 1;
@@ -478,6 +520,15 @@ public class MyLevel extends Level
 					if (tubeHeight >= floorHeight[x] - 1) {
 						tubeHeight = floorHeight[x] - (random.nextInt(2) + 2);
 						if (tubeHeight <= 1) {
+							validTube = false;
+							break;
+						}
+					}
+				}
+				
+				for (int y = tubeHeight; y < floorHeight[tubeLeft]; y++) {
+					for (int x = tubeLeft; x <= tubeRight; x++) {
+						if (blockBehavior(x, y) != EMPTY) {
 							validTube = false;
 							break;
 						}
@@ -494,15 +545,17 @@ public class MyLevel extends Level
 				GameElement tube = possibleTubes.get(random.nextInt(possibleTubes.size()));
 				
 				for (int x = tube.start(); x <= tube.start()+1; x++) {
-					for (int y = tube.height(); y <= height; y++) {
+					for (int y = tube.height(); y < floorHeight[x]; y++) {
 						int xPic = 10 + x - tube.start();
 							
 						if (y == tube.height()) {
 							// tube top
 							setBlock(x, y, (byte) (xPic + 0 * 16));
+							saveBlockInfo(x, y, TUBE, SURFACE);
 						} else {
 							// tube side
 							setBlock(x, y, (byte) (xPic + 1 * 16));
+							saveBlockInfo(x, y, TUBE, BLOCKING);
 						}
 						
 						peak[x] = tube.height();
