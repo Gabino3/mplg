@@ -70,7 +70,7 @@ public class MyLevel extends Level
 		// create the start location
 		int length = 0;
 		length += buildStart(0, width);
-		
+
 		double terrainModifier = random.nextDouble();
 		double pitModifier = random.nextDouble();
 		double hillModifier = random.nextDouble();
@@ -120,11 +120,11 @@ public class MyLevel extends Level
 		fixWalls();
 		fixCorners();
 		
+		/*
 		System.out.println(Arrays.toString(floorHeight));
 		System.out.println(Arrays.toString(peak));
 		
 		System.out.println();
-		
 		for (int y = 0; y < blocks.length; y++) {
 			for (int x = 0; x < blocks[0].length; x++) {
 				if (blocks[y][x] < 10) {
@@ -134,6 +134,7 @@ public class MyLevel extends Level
 			}
 			System.out.println();
 		}
+		*/
 	}
 
 	/*
@@ -176,7 +177,7 @@ public class MyLevel extends Level
 		int minHeight = height - 1;
 		
 		// make terrain more difficult depending on modifier
-		int heightVariance = (int)(Math.round(4*modifier));
+		int heightVariance = (int)(Math.round(3*modifier));
 		int changeProbability = (int)(Math.round(10*modifier)) + 1;
 		
 		int minPadLength = 7;
@@ -507,7 +508,7 @@ public class MyLevel extends Level
 			int tubeLeft = zoneStart + random.nextInt(maxLength-1);
 			int tubeRight = tubeLeft+1;
 			
-			List<GameElement> possibleTubes = new ArrayList<GameElement>();
+			GameElement tube = null;
 			
 			// ensure valid edges
 			if (!nearPit(tubeLeft, tubeRight) && !nearElevationChange(tubeLeft, tubeRight)
@@ -518,7 +519,7 @@ public class MyLevel extends Level
 				
 				for (int x = tubeLeft; x <= tubeRight; x++) {
 					if (tubeHeight >= floorHeight[x] - 1) {
-						tubeHeight = floorHeight[x] - (random.nextInt(2) + 2);
+						tubeHeight = floorHeight[x] - (random.nextInt(1) + 3);
 						if (tubeHeight <= 1) {
 							validTube = false;
 							break;
@@ -526,23 +527,24 @@ public class MyLevel extends Level
 					}
 				}
 				
-				for (int y = tubeHeight; y < floorHeight[tubeLeft]; y++) {
-					for (int x = tubeLeft; x <= tubeRight; x++) {
-						if (blockBehavior(x, y) != EMPTY) {
-							validTube = false;
-							break;
+				if (validTube) {
+					for (int y = tubeHeight; y < floorHeight[tubeLeft]; y++) {
+						for (int x = tubeLeft; x <= tubeRight; x++) {
+							if (blockBehavior(x, y) != EMPTY) {
+								validTube = false;
+								break;
+							}
 						}
 					}
 				}
 				
 				if (validTube) {
-					possibleTubes.add(new GameElement(tubeLeft, 2, tubeHeight));
+					tube = new GameElement(tubeLeft, 2, tubeHeight);
 				}
 			}
 			
-			// select and build one of the valid tubes
-			if (!possibleTubes.isEmpty()) {
-				GameElement tube = possibleTubes.get(random.nextInt(possibleTubes.size()));
+			// select and build the tube if valid
+			if (tube != null) {
 				
 				for (int x = tube.start(); x <= tube.start()+1; x++) {
 					for (int y = tube.height(); y < floorHeight[x]; y++) {
