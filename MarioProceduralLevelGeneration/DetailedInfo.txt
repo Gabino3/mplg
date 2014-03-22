@@ -1,34 +1,3 @@
 StartTime = -17
-RightMove: StTime = 1 EdTime = 15
-RunState: StTime = -1 EdTime = 21
-Jump:  StTime = 15 EdTime = 27
-RightMove: StTime = 19 EdTime = 33
-Jump:  StTime = 48 EdTime = 65
-Jump:  StTime = 67 EdTime = 81
-RightMove: StTime = 43 EdTime = 88
-Jump:  StTime = 98 EdTime = 106
-RightMove: StTime = 103 EdTime = 100
-Jump:  StTime = 120 EdTime = 128
-RunState: StTime = 43 EdTime = 129
-RightMove: StTime = 125 EdTime = 116
-RightMove: StTime = 158 EdTime = 117
-RightMove: StTime = 160 EdTime = 118
-Jump:  StTime = 148 EdTime = 164
-Jump:  StTime = 170 EdTime = 184
-LeftMove: StTime = 202 EdTime = 4
-Jump:  StTime = 202 EdTime = 213
-LeftMove: StTime = 207 EdTime = 20
-RunState: StTime = 226 EdTime = 234
-RightMove: StTime = 228 EdTime = 133
-Jump:  StTime = 227 EdTime = 245
-LeftMove: StTime = 244 EdTime = 28
-Jump:  StTime = 256 EdTime = 272
-RightMove: StTime = 253 EdTime = 155
-Jump:  StTime = 273 EdTime = 286
-Jump:  StTime = 290 EdTime = 301
-Jump:  StTime = 303 EdTime = 311
-RightMove: StTime = 276 EdTime = 208
-RunState: StTime = 254 EdTime = 332
-LittleState: StTime = -17 EdTime = 332
-Totaltime = 349
-Die:  Gap 
+LittleState: StTime = -17 EdTime = 2982
+Totaltime = 2999

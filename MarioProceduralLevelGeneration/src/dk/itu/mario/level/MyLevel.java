@@ -503,6 +503,9 @@ public class MyLevel extends Level
 		return blocks[y][x] % 10;
 	}
 	
+	/*
+	 * Adds tubes in the area defined by zoneStart to zoneStart + maxLength. Amount based on the modifier. 
+	 */
 	private int addTubes(int zoneStart, int maxLength, double modifier) {
 		int length = maxLength;
 		
@@ -573,7 +576,9 @@ public class MyLevel extends Level
 		return length;
 	}
 	
-	
+	/*
+	 * Adds cannons in the area defined by zoneStart to zoneStart + maxLength. Amount based on the modifier. 
+	 */
 	private int addCannons(int zoneStart, int maxLength, double modifier) {
 		//TODO - make them always vary in height when next to each other
 		int length = maxLength;
@@ -658,40 +663,7 @@ public class MyLevel extends Level
 	}
 	
 	
-	private int buildCannons(int xo, int maxLength) {
-		int length = random.nextInt(10) + 2;
-		if (length > maxLength)
-			length = maxLength;
 
-		int floor = height - 1 - random.nextInt(4);
-		int xCannon = xo + 1 + random.nextInt(4);
-		for (int x = xo; x < xo + length; x++) {
-			if (x > xCannon) {
-				xCannon += 2 + random.nextInt(4);
-			}
-			if (xCannon == xo + length - 1)
-				xCannon += 10;
-			int cannonHeight = floor - random.nextInt(4) - 1;
-
-			for (int y = 0; y < height; y++) {
-				if (y >= floor) {
-					setBlock(x, y, GROUND);
-				} else {
-					if (x == xCannon && y >= cannonHeight) {
-						if (y == cannonHeight) {
-							setBlock(x, y, (byte) (14 + 0 * 16));
-						} else if (y == cannonHeight + 1) {
-							setBlock(x, y, (byte) (14 + 1 * 16));
-						} else {
-							setBlock(x, y, (byte) (14 + 2 * 16));
-						}
-					}
-				}
-			}
-		}
-
-		return length;
-	}
 
 	private class GameElement
 	{
@@ -733,78 +705,7 @@ public class MyLevel extends Level
 		}
 	}
 
-	private int buildTubes(int zoneStart, int maxLength) {
-		int length = random.nextInt(10) + 5;
-		if (length > maxLength)
-			length = maxLength;
 
-		int floor = height - 1 - random.nextInt(4);
-		int xTube = zoneStart + 1 + random.nextInt(4);
-		int tubeHeight = floor - random.nextInt(2) - 2;
-
-		for (int x = zoneStart; x < zoneStart + length; x++) {
-			if (x > xTube + 1) {
-				xTube += 3 + random.nextInt(4); // 3-6 spaces between tubes
-				tubeHeight = floor - random.nextInt(2) - 2; // tubes 2-3 blocks high
-			}
-			if (xTube >= zoneStart + length - 2)
-				xTube += 10;
-
-			if (x == xTube && random.nextInt(11) < difficulty + 1) {
-				setSpriteTemplate(x, tubeHeight, new SpriteTemplate(Enemy.ENEMY_FLOWER, false));
-				ENEMIES++;
-			}
-
-			for (int y = 0; y < height; y++) {
-				if (y >= floor) {
-					setBlock(x, y, GROUND);
-				} else {
-					if ((x == xTube || x == xTube + 1) && y >= tubeHeight) {
-						int xPic = 10 + x - xTube;
-
-						if (y == tubeHeight) {
-							// tube top
-							setBlock(x, y, (byte) (xPic + 0 * 16));
-						} else {
-							// tube side
-							setBlock(x, y, (byte) (xPic + 1 * 16));
-						}
-					}
-				}
-			}
-		}
-
-		return length;
-	}
-
-	private int buildStraight(int xo, int maxLength, boolean safe) {
-		int length = random.nextInt(10) + 2;
-
-		if (safe)
-			length = 10 + random.nextInt(5);
-
-		if (length > maxLength)
-			length = maxLength;
-
-		int floor = height - 1 - random.nextInt(4);
-
-		// runs from the specified x position to the length of the segment
-		for (int x = xo; x < xo + length; x++) {
-			for (int y = 0; y < height; y++) {
-				if (y >= floor) {
-					setBlock(x, y, GROUND);
-				}
-			}
-		}
-
-		if (!safe) {
-			if (length > 5) {
-				decorate(xo, xo + length, floor);
-			}
-		}
-
-		return length;
-	}
 
 	private void decorate(int xStart, int xLength, int floor) {
 		// if its at the very top, just return
