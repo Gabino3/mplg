@@ -28,6 +28,7 @@ public class MyLevel extends Level
 	private final int TERRAIN = 0;
 	private final int HILL = 1;
 	private final int TUBE = 2;
+	private final int CANNON = 3;
 	// behavior
 	private final int EMPTY = 0;
 	private final int VISUAL = 1;
@@ -75,13 +76,16 @@ public class MyLevel extends Level
 		double pitModifier = random.nextDouble();
 		double hillModifier = random.nextDouble();
 		double tubeModifier = random.nextDouble();
+		double cannonModifier = random.nextDouble();
 		
 		System.out.printf("Modifiers:\n----------------\nter:\t%f\npit:\t%f\nhill:\t%f\ntube:\t%f\n\n", terrainModifier, pitModifier, hillModifier, tubeModifier);
-		
+		//TODO
 		buildTerrain(length, width-length-12, terrainModifier); // 12 = 8 for end + gap
 		addPits(length, width-length-12, pitModifier);
 		addHills(length, width-length-12, hillModifier);
 		addTubes(length, width-length-12, tubeModifier);
+		addCannons(length, width-length-12, tubeModifier);
+		
 		length += width-length-12;
 
 		// set the end piece
@@ -569,45 +573,91 @@ public class MyLevel extends Level
 		return length;
 	}
 	
-	private int buildJump(int xo, int maxLength) {
-		pits++;
-		// jl: jump length
-		// js: the number of blocks that are available at either side for free
-		int js = random.nextInt(4) + 2;
-		int jl = random.nextInt(2) + 2;
-		int length = js * 2 + jl;
-
-		boolean hasStairs = random.nextInt(3) == 0;
-
-		int floor = height - 1 - random.nextInt(4);
-		// run from the start x position, for the whole length
-		for (int x = xo; x < xo + length; x++) {
-			if (x < xo + js || x > xo + length - js - 1) {
-				// run for all y's since we need to paint blocks upward
-				for (int y = 0; y < height; y++) { // paint ground up until the floor
-					if (y >= floor) {
-						setBlock(x, y, GROUND);
-					}
-					// if it is above ground, start making stairs of rocks
-					else if (hasStairs) { // LEFT SIDE
-						if (x < xo + js) { // we need to max it out and level because it wont
-											// paint ground correctly unless two bricks are side by side
-							if (y >= floor - (x - xo) + 1) {
-								setBlock(x, y, ROCK);
-							}
-						} else { // RIGHT SIDE
-							if (y >= floor - ((xo + length) - x) + 2) {
-								setBlock(x, y, ROCK);
-							}
+	
+	private int addCannons(int zoneStart, int maxLength, double modifier) {
+		//TODO - make them always vary in height when next to each other
+		int length = maxLength;
+		System.out.println("Building Cannons:\n-----------------");
+		System.out.println(" # | Height | Last Height ");
+		int cannonsBuilt = 0;
+		int cannonAttempts = (int)(Math.round(modifier*maxLength)/4);
+		int lastCannonHeight = 0;
+		for (int att = 0; att < cannonAttempts; att++) {
+			int cannonX = zoneStart + random.nextInt(maxLength-1);
+			
+			GameElement cannon = null;
+			
+			// ensure valid edges
+			if (!nearPit(cannonX) && !nearElevationChange(cannonX, cannonX)
+				&& !nearHillEdge(cannonX, cannonX)) {
+				
+				boolean validTube = true;
+				int cannonHeight = height + 1;
+				
+				
+				if (cannonHeight >= floorHeight[cannonX] - 1) {
+					do {
+						cannonHeight = floorHeight[cannonX] - (random.nextInt(3) + 2);
+						if (cannonHeight <= 1) {
+							validTube = false;
 						}
+					} while(cannonHeight == lastCannonHeight || cannonHeight == lastCannonHeight+1 );
+					
+				}
+				
+				
+				if (validTube) {
+					for (int y = cannonHeight; y < floorHeight[cannonX]; y++) {
+							if (blockBehavior(cannonX, y) != EMPTY) {
+								validTube = false;
+								break;
+							}
 					}
 				}
+				
+				if (validTube) {
+					cannon = new GameElement(cannonX, 1, cannonHeight);
+					
+				}
+			}
+			
+			// select and build the tube if valid
+			if (cannon != null) {
+					for (int y = cannon.height(); y < floorHeight[cannonX]; y++) {
+						int xPic = 10 + cannonX - cannon.start();
+							
+						if (y == cannon.height()) {
+							// cannon top
+							setBlock(cannonX, y, (byte) (14 + 0 * 16));
+							saveBlockInfo(cannonX, y, CANNON, SURFACE);
+						} else if (y == cannon.height() + 1) {
+							setBlock(cannonX, y, (byte) (14 + 1 * 16));
+							saveBlockInfo(cannonX, y, CANNON, BLOCKING);
+						}else {
+							// cannon body
+							setBlock(cannonX, y, (byte) (14 + 2 * 16));
+							saveBlockInfo(cannonX, y, CANNON, BLOCKING);
+						}
+						
+						
+						peak[cannonX] = cannon.height();
+					}
+					
+					cannonsBuilt++;
+					if(cannonsBuilt < 10){
+						System.out.println(String.format(" %d  |   %d   | %d ", cannonsBuilt, cannon.height(), lastCannonHeight));
+					} else {
+						System.out.println(String.format(" %d |   %d   | %d ", cannonsBuilt, cannon.height(), lastCannonHeight));
+					}
+					
+					lastCannonHeight = cannon.height();
 			}
 		}
-
+		System.out.println("-----------------");
 		return length;
 	}
-
+	
+	
 	private int buildCannons(int xo, int maxLength) {
 		int length = random.nextInt(10) + 2;
 		if (length > maxLength)
