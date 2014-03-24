@@ -719,17 +719,16 @@ public class MyLevel extends Level
 		int numUsed = 0;
 		for (int att = 0; att < boxAttempts; att++) {
 			int boxStartX = zoneStart + random.nextInt(maxLength-1);
-			int boxY = peak[boxStartX] + 1 - random.nextInt(2);
+			int boxY = peak[boxStartX] - 4;
 			int boxLength = 2 + random.nextInt(4);
 			boolean validBoxes = true;
 			
-			if (boxY - 1 < 1 || Arrays.asList(usedX).contains(boxStartX) || nearPit(boxStartX) || nearElevationChange(boxStartX, boxStartX))
+			if (boxY - 1 < 1 || Arrays.asList(usedX).contains(boxStartX) || nearPit(boxStartX) || nearElevationChange(boxStartX, boxStartX+boxLength))
 				validBoxes = false;
 			
 			//check peaks 
 			
 			for (int x = 1; x <= boxLength; x++) {
-				System.out.println( peak[boxStartX+x] < boxY + 1 );
 				if (peak[boxStartX+x] < boxY + 1 || Arrays.asList(usedX).contains(boxStartX+x)){
 					validBoxes = false;
 					break;
@@ -743,20 +742,20 @@ public class MyLevel extends Level
 					numUsed++;
 						if (x != boxStartX + 1 && x != boxStartX + boxLength - 2 && random.nextInt(3) == 0) {
 							if (random.nextInt(4) == 0) {
-								setBlock(x, boxY - 4, BLOCK_POWERUP);
+								setBlock(x, boxY, BLOCK_POWERUP);
 								BLOCKS_POWER++;
 							} else { // the fills a block with a hidden coin
-								setBlock(x, boxY - 4, BLOCK_COIN);
+								setBlock(x, boxY, BLOCK_COIN);
 								BLOCKS_COINS++;
 							}
 						} else if (random.nextInt(4) == 0) {
 							if (random.nextInt(4) == 0) {
-								setBlock(x, boxY - 4, (byte) (2 + 1 * 16));
+								setBlock(x, boxY, (byte) (2 + 1 * 16));
 							} else {
-								setBlock(x, boxY - 4, (byte) (1 + 1 * 16));
+								setBlock(x, boxY, (byte) (1 + 1 * 16));
 							}
 						} else {
-							setBlock(x, boxY - 4, BLOCK_EMPTY);
+							setBlock(x, boxY, BLOCK_EMPTY);
 							BLOCKS_EMPTY++;
 						}
 					
