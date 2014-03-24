@@ -1,3 +1,24 @@
 StartTime = -17
-LittleState: StTime = -17 EdTime = 2982
-Totaltime = 2999
+Jump:  StTime = 9 EdTime = 25
+RunState: StTime = -1 EdTime = 37
+Jump:  StTime = 27 EdTime = 41
+RunState: StTime = 42 EdTime = 52
+Jump:  StTime = 43 EdTime = 55
+BlockCoinDestroy:  time = 65
+Jump:  StTime = 63 EdTime = 71
+RightMove: StTime = -16 EdTime = 95
+BlockPowerDestroy:  time = 82
+Jump:  StTime = 80 EdTime = 88
+Jump:  StTime = 97 EdTime = 105
+RightMove: StTime = 93 EdTime = 117
+Jump:  StTime = 121 EdTime = 129
+LeftMove: StTime = 116 EdTime = 19
+RightMove: StTime = 136 EdTime = 129
+Jump:  StTime = 145 EdTime = 153
+LittleState: StTime = -17 EdTime = 158
+LeftMove: StTime = 149 EdTime = 49
+RunState: StTime = 183 EdTime = 195
+LargeState: StTime = 158 EdTime = 195
+Totaltime = 212
+Jump:  StTime = 186 EdTime = 195
+Die:  Gap 

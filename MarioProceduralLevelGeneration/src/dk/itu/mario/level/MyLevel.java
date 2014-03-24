@@ -79,16 +79,18 @@ public class MyLevel extends Level
 		double hillModifier = random.nextDouble();
 		double tubeModifier = random.nextDouble();
 		double cannonModifier = random.nextDouble();
-		double boxModifier = .9;
+		double boxModifier = random.nextDouble();
+		double coinModifier = random.nextDouble();
+		double powerModifier = random.nextDouble();
 		
 		System.out.printf("Modifiers:\n----------------\nter:\t%f\npit:\t%f\nhill:\t%f\ntube:\t%f\n\n", terrainModifier, pitModifier, hillModifier, tubeModifier);
 		//TODO
 		buildTerrain(length, width-length-12, terrainModifier); // 12 = 8 for end + gap
-	//	addPits(length, width-length-12, pitModifier);
+		addPits(length, width-length-12, pitModifier);
 		addHills(length, width-length-12, hillModifier);
-	//	addTubes(length, width-length-12, tubeModifier);
-	//	addCannons(length, width-length-12, tubeModifier);
-		addBoxes(length, width-length-12, boxModifier);
+		addTubes(length, width-length-12, tubeModifier);
+		addCannons(length, width-length-12, cannonModifier);
+		addBoxes(length, width-length-12, boxModifier, coinModifier, powerModifier);
 		
 		length += width-length-12;
 
@@ -710,55 +712,69 @@ public class MyLevel extends Level
 	}
 
 
-	private int addBoxes(int zoneStart, int maxLength, double modifier) {
-		//TODO - make them always vary in height when next to each other
+	private int addBoxes(int zoneStart, int maxLength, double modifier, double coinMod, double powerMod) {
+		//TODO
 		int length = maxLength;
 		int boxAttempts = (int)(Math.round(modifier*maxLength)/4);
-		
+		System.out.printf("Attempts: %d\n", boxAttempts);
 		int[] usedX = new int[maxLength-zoneStart];
 		int numUsed = 0;
 		for (int att = 0; att < boxAttempts; att++) {
 			int boxStartX = zoneStart + random.nextInt(maxLength-1);
 			int boxY = peak[boxStartX] - 4;
-			int boxLength = 2 + random.nextInt(4);
+			int maxBoxLength = 1;
+			int boxLength = 1;
 			boolean validBoxes = true;
 			
 			if (boxY - 1 < 1 || Arrays.asList(usedX).contains(boxStartX)
-				|| nearPit(boxStartX) || nearElevationChange(boxStartX, boxStartX+boxLength)
+				|| nearPit(boxStartX) 
+				|| nearElevationChange(boxStartX, boxStartX+boxLength)
 				|| nearHillEdge(boxStartX, boxStartX+boxLength))
 				validBoxes = false;
 			
-			//check peaks 
-			
-			for (int x = 1; x <= boxLength; x++) {
-				if (peak[boxStartX+x] < boxY + 1 || Arrays.asList(usedX).contains(boxStartX+x)){
-					validBoxes = false;
+			//get valid box lengths 
+			for (int x = 1; x <= 4; x++) {
+				if (peak[boxStartX+x] < boxY + 1 
+						|| Arrays.asList(usedX).contains(boxStartX+x) 
+						|| nearElevationChange(boxStartX, boxStartX+x)
+						|| nearHillEdge(boxStartX, boxStartX+x)){
+					//validBoxes = false;
 					break;
+				} else {
+					maxBoxLength++;
 				}
 				
 			}
+
+			boxLength = 1 + random.nextInt(maxBoxLength);
+			
 			
 			if (validBoxes){
 				for (int x = boxStartX; x < boxLength + boxStartX; x++) {
 					usedX[numUsed] = x;
 					numUsed++;
-						if (x != boxStartX + 1 && x != boxStartX + boxLength - 2 && random.nextInt(3) == 0) {
-							if (random.nextInt(4) == 0) {
-								setBlock(x, boxY, BLOCK_POWERUP);
-								BLOCKS_POWER++;
-							} else { // the fills a block with a hidden coin
-								setBlock(x, boxY, BLOCK_COIN);
-								BLOCKS_COINS++;
-							}
-						} else if (random.nextInt(4) == 0) {
+					//	if (x != boxStartX + 1 && x != boxStartX + boxLength - 2 && random.nextInt(3) == 0) {
+						if (random.nextInt(15 - (int)(powerMod*10)) == 0) {
+							setBlock(x, boxY, BLOCK_POWERUP);
+							BLOCKS_POWER++;
+							peak[x] = boxY;
+						} else if((random.nextInt(10 - (int)(coinMod*10)) == 0)) { // the fills a block with a hidden coin
+							setBlock(x, boxY, BLOCK_COIN);
+							BLOCKS_COINS++;
+							peak[x] = boxY;
+						}
+						 else if (random.nextInt(4) == 0) {
 							if (random.nextInt(4) == 0) {
 								setBlock(x, boxY, (byte) (2 + 1 * 16));
+								peak[x] = boxY;
 							} else {
 								setBlock(x, boxY, (byte) (1 + 1 * 16));
+								peak[x] = boxY;
 							}
 						} else {
 							setBlock(x, boxY, BLOCK_EMPTY);
 							BLOCKS_EMPTY++;
+							peak[x] = boxY;
 						}
 					
 				}
