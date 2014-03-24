@@ -2,8 +2,10 @@ package dk.itu.mario.level;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import dk.itu.mario.MarioInterface.Constraints;
 import dk.itu.mario.MarioInterface.GamePlay;
@@ -77,14 +79,16 @@ public class MyLevel extends Level
 		double hillModifier = random.nextDouble();
 		double tubeModifier = random.nextDouble();
 		double cannonModifier = random.nextDouble();
+		double boxModifier = .9;
 		
 		System.out.printf("Modifiers:\n----------------\nter:\t%f\npit:\t%f\nhill:\t%f\ntube:\t%f\n\n", terrainModifier, pitModifier, hillModifier, tubeModifier);
 		//TODO
 		buildTerrain(length, width-length-12, terrainModifier); // 12 = 8 for end + gap
-		addPits(length, width-length-12, pitModifier);
-		addHills(length, width-length-12, hillModifier);
-		addTubes(length, width-length-12, tubeModifier);
-		addCannons(length, width-length-12, tubeModifier);
+	//	addPits(length, width-length-12, pitModifier);
+	//	addHills(length, width-length-12, hillModifier);
+	//	addTubes(length, width-length-12, tubeModifier);
+	//	addCannons(length, width-length-12, tubeModifier);
+		addBoxes(length, width-length-12, boxModifier);
 		
 		length += width-length-12;
 
@@ -706,6 +710,76 @@ public class MyLevel extends Level
 	}
 
 
+	private int addBoxes(int zoneStart, int maxLength, double modifier) {
+		//TODO - make them always vary in height when next to each other
+		int length = maxLength;
+		int boxAttempts = (int)(Math.round(modifier*maxLength)/4);
+		
+		int[] usedX = new int[maxLength-zoneStart];
+		int numUsed = 0;
+		for (int att = 0; att < boxAttempts; att++) {
+			int boxStartX = zoneStart + random.nextInt(maxLength-1);
+			int boxY = peak[boxStartX] + 1 - random.nextInt(2);
+			int boxLength = 2 + random.nextInt(4);
+			boolean validBoxes = true;
+			
+			if (boxY - 1 < 1 || Arrays.asList(usedX).contains(boxStartX) || nearPit(boxStartX) || nearElevationChange(boxStartX, boxStartX))
+				validBoxes = false;
+			
+			//check peaks 
+			
+			for (int x = 1; x <= boxLength; x++) {
+				System.out.println( peak[boxStartX+x] < boxY + 1 );
+				if (peak[boxStartX+x] < boxY + 1 || Arrays.asList(usedX).contains(boxStartX+x)){
+					validBoxes = false;
+					break;
+				}
+				
+			}
+			
+			if (validBoxes){
+				for (int x = boxStartX; x < boxLength + boxStartX; x++) {
+					usedX[numUsed] = x;
+					numUsed++;
+						if (x != boxStartX + 1 && x != boxStartX + boxLength - 2 && random.nextInt(3) == 0) {
+							if (random.nextInt(4) == 0) {
+								setBlock(x, boxY - 4, BLOCK_POWERUP);
+								BLOCKS_POWER++;
+							} else { // the fills a block with a hidden coin
+								setBlock(x, boxY - 4, BLOCK_COIN);
+								BLOCKS_COINS++;
+							}
+						} else if (random.nextInt(4) == 0) {
+							if (random.nextInt(4) == 0) {
+								setBlock(x, boxY - 4, (byte) (2 + 1 * 16));
+							} else {
+								setBlock(x, boxY - 4, (byte) (1 + 1 * 16));
+							}
+						} else {
+							setBlock(x, boxY - 4, BLOCK_EMPTY);
+							BLOCKS_EMPTY++;
+						}
+					
+				}
+			}
+			
+			
+			
+			
+		}
+		System.out.println(Arrays.toString(usedX));
+		System.out.println(numUsed);
+		Set<Integer> mySet = new HashSet (Arrays.asList(usedX));
+		int temp = 0;
+		for (int i = 0; i < usedX.length; i++) {
+			if (usedX[i] == 0)
+				temp++;
+		}
+		
+		System.out.println(mySet.size() == usedX.length-temp);
+		return length;
+	}
+	
 
 	private void decorate(int xStart, int xLength, int floor) {
 		// if its at the very top, just return
