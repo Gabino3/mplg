@@ -85,7 +85,7 @@ public class MyLevel extends Level
 		//TODO
 		buildTerrain(length, width-length-12, terrainModifier); // 12 = 8 for end + gap
 	//	addPits(length, width-length-12, pitModifier);
-	//	addHills(length, width-length-12, hillModifier);
+		addHills(length, width-length-12, hillModifier);
 	//	addTubes(length, width-length-12, tubeModifier);
 	//	addCannons(length, width-length-12, tubeModifier);
 		addBoxes(length, width-length-12, boxModifier);
@@ -723,7 +723,9 @@ public class MyLevel extends Level
 			int boxLength = 2 + random.nextInt(4);
 			boolean validBoxes = true;
 			
-			if (boxY - 1 < 1 || Arrays.asList(usedX).contains(boxStartX) || nearPit(boxStartX) || nearElevationChange(boxStartX, boxStartX+boxLength))
+			if (boxY - 1 < 1 || Arrays.asList(usedX).contains(boxStartX)
+				|| nearPit(boxStartX) || nearElevationChange(boxStartX, boxStartX+boxLength)
+				|| nearHillEdge(boxStartX, boxStartX+boxLength))
 				validBoxes = false;
 			
 			//check peaks 
