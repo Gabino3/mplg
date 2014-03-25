@@ -74,15 +74,15 @@ public class MyLevel extends Level
 		int length = 0;
 		length += buildStart(0, width);
 
-		double terrainModifier = random.nextDouble();
-		double pitModifier = random.nextDouble();
-		double hillModifier = random.nextDouble();
-		double tubeModifier = random.nextDouble();
-		double cannonModifier = random.nextDouble();
-		double boxModifier = random.nextDouble();
-		double coinModifier = random.nextDouble();
-		double powerModifier = random.nextDouble();
-		double enemyModifier = random.nextDouble();
+		double terrainModifier = randomMod();
+		double pitModifier = randomMod();
+		double hillModifier = randomMod();
+		double tubeModifier = randomMod();
+		double cannonModifier = randomMod();
+		double boxModifier = randomMod();
+		double coinModifier = randomMod();
+		double powerModifier = randomMod();
+		double enemyModifier = randomMod();
 		
 		System.out.printf("Modifiers:\n----------------\n" + 
 				"ter :\t%f\n" +
@@ -166,6 +166,10 @@ public class MyLevel extends Level
 		}
 		*/
 	}
+	
+	private double randomMod() {
+		return (random.nextDouble()*30+20)/100;
+	}
 
 	/*
 	 * Constructs the beginning of the level - a flat, undecorated piece of
@@ -203,7 +207,7 @@ public class MyLevel extends Level
 	 */
 	private int buildTerrain(int zoneStart, int maxLength, double modifier) {
 		int length = maxLength;
-		int maxHeight = height - 6;
+		int maxHeight = height - 5;
 		int minHeight = height - 1;
 		
 		// make terrain more difficult depending on modifier
@@ -738,9 +742,9 @@ public class MyLevel extends Level
 
 
 	private int addBoxes(int zoneStart, int maxLength, double modifier, double coinMod, double powerMod) {
-		//TODO
+		//TODO make minimum box length 2
 		int length = maxLength;
-		int boxAttempts = (int)(Math.round(modifier*maxLength)/4);
+		int boxAttempts = (int)(Math.round(modifier*maxLength));
 		System.out.printf("Attempts: %d\n", boxAttempts);
 		int[] usedX = new int[maxLength-zoneStart];
 		int numUsed = 0;
@@ -768,7 +772,6 @@ public class MyLevel extends Level
 				} else {
 					maxBoxLength++;
 				}
-				
 			}
 
 			boxLength = 1 + random.nextInt(maxBoxLength);
