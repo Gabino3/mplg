@@ -82,13 +82,33 @@ public class MyLevel extends Level
 		double boxModifier = random.nextDouble();
 		double coinModifier = random.nextDouble();
 		double powerModifier = random.nextDouble();
+		double enemyModifier = random.nextDouble();
 		
-		System.out.printf("Modifiers:\n----------------\nter:\t%f\npit:\t%f\nhill:\t%f\ntube:\t%f\n\n", terrainModifier, pitModifier, hillModifier, tubeModifier);
+		System.out.printf("Modifiers:\n----------------\n" + 
+				"ter :\t%f\n" +
+				"pit :\t%f\n" +
+				"hill:\t%f\n" +
+				"tube:\t%f\n" +
+				"can :\t%f\n" +
+				"box :\t%f\n" +
+				"coin:\t%f\n" +
+				"pow :\t%f\n" +
+				"enmy:\t%f\n" +
+				"\n",
+				terrainModifier,
+				pitModifier,
+				hillModifier,
+				tubeModifier,
+				cannonModifier,
+				boxModifier,
+				coinModifier,
+				powerModifier,
+				enemyModifier);
 		//TODO
 		buildTerrain(length, width-length-12, terrainModifier); // 12 = 8 for end + gap
 		addPits(length, width-length-12, pitModifier);
 		addHills(length, width-length-12, hillModifier);
-		addTubes(length, width-length-12, tubeModifier);
+		addTubes(length, width-length-12, tubeModifier, enemyModifier);
 		addCannons(length, width-length-12, cannonModifier);
 		addBoxes(length, width-length-12, boxModifier, coinModifier, powerModifier);
 		
@@ -152,7 +172,7 @@ public class MyLevel extends Level
 	 * flooring.
 	 */
 	private int buildStart(int zoneStart, int maxLength) {
-		int length = random.nextInt(10) + 2;
+		int length = 10 + random.nextInt(3);
 
 		if (length > maxLength)
 			length = maxLength;
@@ -323,7 +343,7 @@ public class MyLevel extends Level
 						// make sure the hill is higher than surrounding hills
 						if (hillHeight >= peak[x] - 1) {
 							hillHeight = peak[x] - (random.nextInt(3) + 2);
-							if (hillHeight <= 1) {
+							if (hillHeight <= 3) {
 								validHill = false;
 								break;
 							}
@@ -512,10 +532,10 @@ public class MyLevel extends Level
 	/*
 	 * Adds tubes in the area defined by zoneStart to zoneStart + maxLength. Amount based on the modifier. 
 	 */
-	private int addTubes(int zoneStart, int maxLength, double modifier) {
+	private int addTubes(int zoneStart, int maxLength, double tubeMod, double enemyMod) {
 		int length = maxLength;
 		
-		int tubeAttempts = (int)(Math.round(modifier*maxLength)/4);
+		int tubeAttempts = (int)(Math.round(tubeMod*maxLength)/4);
 		
 		for (int att = 0; att < tubeAttempts; att++) {
 			int tubeLeft = zoneStart + random.nextInt(maxLength-1);
@@ -575,6 +595,11 @@ public class MyLevel extends Level
 						
 						peak[x] = tube.height();
 					}
+				}
+				
+				if (random.nextInt(101) < enemyMod*100) {
+					setSpriteTemplate(tube.start(), tube.height(), new SpriteTemplate(Enemy.ENEMY_FLOWER, false));
+					ENEMIES++;
 				}
 			}
 		}
