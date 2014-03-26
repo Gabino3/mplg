@@ -31,6 +31,7 @@ public class MyLevel extends Level
 	private final int HILL = 1;
 	private final int TUBE = 2;
 	private final int CANNON = 3;
+	private final int BLOCK = 4;
 	// behavior
 	private final int EMPTY = 0;
 	private final int VISUAL = 1;
@@ -47,6 +48,7 @@ public class MyLevel extends Level
 	private int difficulty;
 	private int type;
 	private int pits;
+	private List<Surface> surfaces;
 
 	public MyLevel(int width, int height) {
 		super(width, height);
@@ -61,6 +63,8 @@ public class MyLevel extends Level
 		floorHeight = new int[width];
 		peak = new int[width];
 		Arrays.fill(peak, height+1);
+		
+		surfaces = new ArrayList<Surface>();
 
 		blocks = new int[height][width];
 		
@@ -111,6 +115,7 @@ public class MyLevel extends Level
 		addTubes(length, width-length-12, tubeModifier, enemyModifier);
 		addCannons(length, width-length-12, cannonModifier);
 		addBoxes(length, width-length-12, boxModifier, coinModifier, powerModifier);
+		addEnemies(length, width-length-12, enemyModifier);
 		
 		length += width-length-12;
 
@@ -168,7 +173,8 @@ public class MyLevel extends Level
 	}
 	
 	private double randomMod() {
-		return (random.nextDouble()*30+20)/100;
+		//return (random.nextDouble()*30+20)/100;
+		return 0.5;
 	}
 
 	/*
@@ -233,10 +239,8 @@ public class MyLevel extends Level
 						setBlock(x, y - 2, HILL_TOP_RIGHT_IN);
 					
 					if (y == floor) {
-						//blocks[y][x] = SURFACE;
 						saveBlockInfo(x, y, TERRAIN, SURFACE);
 					} else {
-						//blocks[y][x] = VISUAL;
 						saveBlockInfo(x, y, TERRAIN, VISUAL);
 					}
 				}
@@ -268,7 +272,7 @@ public class MyLevel extends Level
 		// ensure we don't get any divide-by-zero errors
 		if (modifier <= 0) { modifier = 0.01; }
 		
-		int pitProbability = (int)(Math.round(3*(1.0/Math.pow(modifier,3)))) + 1;
+		int pitProbability = (int)(Math.round(3*(1.0/Math.pow(modifier,4)))) + 1;
 		int pitWidth = (int)(Math.round(2*modifier)) + 2; // cannot exceed min pad length
 		
 		// find location to create pit
@@ -346,7 +350,7 @@ public class MyLevel extends Level
 						
 						// make sure the hill is higher than surrounding hills
 						if (hillHeight >= peak[x] - 1) {
-							hillHeight = peak[x] - (random.nextInt(3) + 2);
+							hillHeight = peak[x] - (random.nextInt(2) + 2); // 2:3
 							if (hillHeight <= 3) {
 								validHill = false;
 								break;
@@ -360,9 +364,10 @@ public class MyLevel extends Level
 				}
 			}
 			
-			// select and build one of the valid hills
+			// randomly select and build one of the valid hills
 			if (!possibleHills.isEmpty()) {
 				GameElement hill = possibleHills.get(random.nextInt(possibleHills.size()));
+				
 				int hillWidth = hill.width();
 				hillLeft = hill.start();
 				int hillRight = hillLeft + hillWidth - 1;
@@ -397,6 +402,9 @@ public class MyLevel extends Level
 						}
 					}
 				}
+				
+				// register hill as surface
+				surfaces.add(new Surface(hillLeft, hillHeight, hillRight-hillLeft+1, HILL));
 			}
 		}
 		
@@ -534,6 +542,20 @@ public class MyLevel extends Level
 	}
 	
 	/*
+	 * Changes a blocks saved use in blocks[][].
+	 */
+	private void changeBlockUse(int x, int y, int use) {
+		saveBlockInfo(x, y, use, blockBehavior(x, y));
+	}
+	
+	/*
+	 * Changes a blocks saved behavior in blocks[][].
+	 */
+	private void changeBlockBehavior(int x, int y, int behavior) {
+		saveBlockInfo(x, y, blockUse(x, y), behavior);
+	}
+	
+	/*
 	 * Adds tubes in the area defined by zoneStart to zoneStart + maxLength. Amount based on the modifier. 
 	 */
 	private int addTubes(int zoneStart, int maxLength, double tubeMod, double enemyMod) {
@@ -599,12 +621,17 @@ public class MyLevel extends Level
 						
 						peak[x] = tube.height();
 					}
+					
+					changeBlockBehavior(x, floorHeight[x], BLOCKING);
 				}
 				
 				if (random.nextInt(101) < enemyMod*100) {
 					setSpriteTemplate(tube.start(), tube.height(), new SpriteTemplate(Enemy.ENEMY_FLOWER, false));
 					ENEMIES++;
 				}
+				
+				// register tube as surface
+				surfaces.add(new Surface(tube.start(), tube.height(), 2, TUBE));
 			}
 		}
 		
@@ -620,7 +647,7 @@ public class MyLevel extends Level
 		System.out.println("Building Cannons:\n-----------------");
 		System.out.println(" # | Height | Last Height ");
 		int cannonsBuilt = 0;
-		int cannonAttempts = (int)(Math.round(modifier*maxLength)/4);
+		int cannonAttempts = (int)(Math.round(modifier*maxLength)/5);
 		int lastCannonHeight = 0;
 		for (int att = 0; att < cannonAttempts; att++) {
 			int cannonX = zoneStart + random.nextInt(maxLength-1);
@@ -631,7 +658,7 @@ public class MyLevel extends Level
 			if (!nearPit(cannonX) && !nearElevationChange(cannonX, cannonX)
 				&& !nearHillEdge(cannonX, cannonX)) {
 				
-				boolean validTube = true;
+				boolean validCannon = true;
 				int cannonHeight = height + 1;
 				
 				
@@ -639,58 +666,60 @@ public class MyLevel extends Level
 					do {
 						cannonHeight = floorHeight[cannonX] - (random.nextInt(3) + 2);
 						if (cannonHeight <= 1) {
-							validTube = false;
+							validCannon = false;
 						}
 					} while(cannonHeight == lastCannonHeight || cannonHeight == lastCannonHeight+1 );
-					
 				}
 				
 				
-				if (validTube) {
+				if (validCannon) {
 					for (int y = cannonHeight; y < floorHeight[cannonX]; y++) {
-							if (blockBehavior(cannonX, y) != EMPTY) {
-								validTube = false;
-								break;
-							}
+						if (blockBehavior(cannonX, y) != EMPTY) {
+							validCannon = false;
+							break;
+						}
 					}
 				}
 				
-				if (validTube) {
-					cannon = new GameElement(cannonX, 1, cannonHeight);
-					
+				if (validCannon) {
+					cannon = new GameElement(cannonX, 1, cannonHeight);	
 				}
 			}
 			
 			// select and build the tube if valid
 			if (cannon != null) {
-					for (int y = cannon.height(); y < floorHeight[cannonX]; y++) {
-						int xPic = 10 + cannonX - cannon.start();
-							
-						if (y == cannon.height()) {
-							// cannon top
-							setBlock(cannonX, y, (byte) (14 + 0 * 16));
-							saveBlockInfo(cannonX, y, CANNON, SURFACE);
-						} else if (y == cannon.height() + 1) {
-							setBlock(cannonX, y, (byte) (14 + 1 * 16));
-							saveBlockInfo(cannonX, y, CANNON, BLOCKING);
-						}else {
-							// cannon body
-							setBlock(cannonX, y, (byte) (14 + 2 * 16));
-							saveBlockInfo(cannonX, y, CANNON, BLOCKING);
-						}
+				for (int y = cannon.height(); y < floorHeight[cannonX]; y++) {
+					int xPic = 10 + cannonX - cannon.start();
 						
-						
-						peak[cannonX] = cannon.height();
+					if (y == cannon.height()) {
+						// cannon top
+						setBlock(cannonX, y, (byte) (14 + 0 * 16));
+						saveBlockInfo(cannonX, y, CANNON, SURFACE);
+					} else if (y == cannon.height() + 1) {
+						setBlock(cannonX, y, (byte) (14 + 1 * 16));
+						saveBlockInfo(cannonX, y, CANNON, BLOCKING);
+					}else {
+						// cannon body
+						setBlock(cannonX, y, (byte) (14 + 2 * 16));
+						saveBlockInfo(cannonX, y, CANNON, BLOCKING);
 					}
-					
-					cannonsBuilt++;
-					if(cannonsBuilt < 10){
-						System.out.println(String.format(" %d  |   %d   | %d ", cannonsBuilt, cannon.height(), lastCannonHeight));
-					} else {
-						System.out.println(String.format(" %d |   %d   | %d ", cannonsBuilt, cannon.height(), lastCannonHeight));
-					}
-					
-					lastCannonHeight = cannon.height();
+
+					peak[cannonX] = cannon.height();
+				}
+				
+				changeBlockBehavior(cannonX, floorHeight[cannonX], BLOCKING);
+				
+				// register cannon as surface
+				surfaces.add(new Surface(cannonX, cannon.height(), 1, CANNON));
+				
+				cannonsBuilt++;
+				if(cannonsBuilt < 10){
+					System.out.println(String.format(" %d  |   %d   | %d ", cannonsBuilt, cannon.height(), lastCannonHeight));
+				} else {
+					System.out.println(String.format(" %d |   %d   | %d ", cannonsBuilt, cannon.height(), lastCannonHeight));
+				}
+				
+				lastCannonHeight = cannon.height();
 			}
 		}
 		System.out.println("-----------------");
@@ -722,6 +751,34 @@ public class MyLevel extends Level
 			return height;
 		}
 	}
+	
+	private class Surface
+	{
+		private int x, y, width, use;
+		
+		public Surface(int x, int y, int width, int use) {
+			this.x = x;
+			this.y = y;
+			this.width = width;
+			this.use = use;
+		}
+		
+		public int x() {
+			return x;
+		}
+		
+		public int y() {
+			return y;
+		}
+		
+		public int width() {
+			return width;
+		}
+		
+		public int use() {
+			return use;
+		}
+	}
 
 	private void addEnemyLine(int x0, int x1, int y) {
 		for (int x = x0; x < x1; x++) {
@@ -740,9 +797,7 @@ public class MyLevel extends Level
 		}
 	}
 
-
 	private int addBoxes(int zoneStart, int maxLength, double modifier, double coinMod, double powerMod) {
-		//TODO make minimum box length 2
 		int length = maxLength;
 		int boxAttempts = (int)(Math.round(modifier*maxLength));
 		System.out.printf("Attempts: %d\n", boxAttempts);
@@ -753,13 +808,13 @@ public class MyLevel extends Level
 			int boxY = peak[boxStartX] - 4;
 			int maxBoxLength = 1;
 			int boxLength = 1;
-			boolean validBoxes = true;
+			boolean validBlockLine = true;
 			
 			if (boxY - 1 < 1 || Arrays.asList(usedX).contains(boxStartX)
 				|| nearPit(boxStartX) 
 				|| nearElevationChange(boxStartX, boxStartX+boxLength)
 				|| nearHillEdge(boxStartX, boxStartX+boxLength))
-				validBoxes = false;
+				validBlockLine = false;
 			
 			//get valid box lengths 
 			for (int x = 1; x <= 4; x++) {
@@ -774,44 +829,49 @@ public class MyLevel extends Level
 				}
 			}
 
-			boxLength = 1 + random.nextInt(maxBoxLength);
+			if (maxBoxLength > 1) {
+				boxLength = 2 + random.nextInt(maxBoxLength-1);
+			} else {
+				validBlockLine = false;
+			}
 			
-			
-			if (validBoxes){
+			if (validBlockLine) {
 				for (int x = boxStartX; x < boxLength + boxStartX; x++) {
 					usedX[numUsed] = x;
 					numUsed++;
-					//	if (x != boxStartX + 1 && x != boxStartX + boxLength - 2 && random.nextInt(3) == 0) {
-						if (random.nextInt(15 - (int)(powerMod*10)) == 0) {
-							setBlock(x, boxY, BLOCK_POWERUP);
-							BLOCKS_POWER++;
+					if (random.nextInt(15 - (int)(powerMod*10)) == 0) {
+						setBlock(x, boxY, BLOCK_POWERUP);
+						saveBlockInfo(x, boxY, BLOCK, SURFACE);
+						BLOCKS_POWER++;
+						peak[x] = boxY;
+					} else if((random.nextInt(10 - (int)(coinMod*10)) == 0)) { // the fills a block with a hidden coin
+						setBlock(x, boxY, BLOCK_COIN);
+						saveBlockInfo(x, boxY, BLOCK, SURFACE);
+						BLOCKS_COINS++;
+						peak[x] = boxY;
+					} else if (random.nextInt(4) == 0) {
+						if (random.nextInt(4) == 0) {
+							setBlock(x, boxY, (byte) (2 + 1 * 16));
+							saveBlockInfo(x, boxY, BLOCK, SURFACE);
 							peak[x] = boxY;
-						} else if((random.nextInt(10 - (int)(coinMod*10)) == 0)) { // the fills a block with a hidden coin
-							setBlock(x, boxY, BLOCK_COIN);
-							BLOCKS_COINS++;
-							peak[x] = boxY;
-						}
-						 else if (random.nextInt(4) == 0) {
-							if (random.nextInt(4) == 0) {
-								setBlock(x, boxY, (byte) (2 + 1 * 16));
-								peak[x] = boxY;
-							} else {
-								setBlock(x, boxY, (byte) (1 + 1 * 16));
-								peak[x] = boxY;
-							}
 						} else {
-							setBlock(x, boxY, BLOCK_EMPTY);
-							BLOCKS_EMPTY++;
+							setBlock(x, boxY, (byte) (1 + 1 * 16));
+							saveBlockInfo(x, boxY, BLOCK, SURFACE);
 							peak[x] = boxY;
 						}
-					
+					} else {
+						setBlock(x, boxY, BLOCK_EMPTY);
+						saveBlockInfo(x, boxY, BLOCK, SURFACE);
+						BLOCKS_EMPTY++;
+						peak[x] = boxY;
+					}
 				}
+				
+				// register boxline as surface
+				surfaces.add(new Surface(boxStartX, boxY, boxLength, BLOCK));
 			}
-			
-			
-			
-			
 		}
+		
 		System.out.println(Arrays.toString(usedX));
 		System.out.println(numUsed);
 		Set<Integer> mySet = new HashSet (Arrays.asList(usedX));
@@ -825,7 +885,51 @@ public class MyLevel extends Level
 		return length;
 	}
 	
-
+	private int addEnemies(int zoneStart, int maxLength, double enemyMod) {
+		int length = maxLength;
+		
+		// attempt to spawn an enemy on all surfaces
+		for (Surface s : surfaces) {
+			if (s.use() != CANNON && s.use() != TUBE) {
+				if (random.nextInt(101) <= (enemyMod*100)) {
+					int x = s.x() + random.nextInt(s.width());
+					int y = s.y() - 1;
+					
+					int typeModifier = 0;
+					int type = 0;
+					
+					// determine highest allowed enemy difficulty
+					if (enemyMod < 0.25) {
+						typeModifier = 1; // easy
+					} else if (enemyMod >= 0.25 && enemyMod < 0.75) {
+						typeModifier = 2; // medium
+					} else if (enemyMod >= 0.75) {
+						typeModifier = 3; // hard
+					}
+					
+					// choose from easy to highest allowed difficulty
+					type = random.nextInt(typeModifier) + 1;
+					
+					// spawn enemy from selected difficulty
+					if (type == 1) {
+						type = Enemy.ENEMY_GOOMBA;
+					} else if (type == 2) {
+						type = random.nextInt(2); // red/green koopa
+					} else if (type == 3) {
+						type = Enemy.ENEMY_SPIKY;
+					}
+					
+					// flying only possible with 0.75 enemyMod, afterwards 0.25 chance of flying
+					boolean flying = (random.nextInt(typeModifier)+1 == 3);
+					
+					setSpriteTemplate(x, y, new SpriteTemplate(type, flying));
+				}
+			}
+		}
+		
+		return length;
+	}
+	
 	private void decorate(int xStart, int xLength, int floor) {
 		// if its at the very top, just return
 		if (floor < 1)
@@ -1014,7 +1118,6 @@ public class MyLevel extends Level
 		clone.COINS = COINS;
 
 		return clone;
-
 	}
 
 }
