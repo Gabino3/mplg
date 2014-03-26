@@ -174,7 +174,7 @@ public class MyLevel extends Level
 	
 	private double randomMod() {
 		//return (random.nextDouble()*30+20)/100;
-		return 0.5;
+		return random.nextDouble();
 	}
 
 	/*
