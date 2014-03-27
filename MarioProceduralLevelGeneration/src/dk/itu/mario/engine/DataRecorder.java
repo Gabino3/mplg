@@ -19,7 +19,7 @@ import dk.itu.mario.engine.sprites.FlowerEnemy;
 
 public class DataRecorder {
 
-	private boolean dataTrain = true;
+	private boolean dataTrain = false;
 	public boolean recording = true;
 	private RandomLevel level;
 	private boolean []keys, keyPressed;

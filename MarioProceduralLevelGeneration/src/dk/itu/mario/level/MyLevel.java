@@ -284,6 +284,9 @@ public class MyLevel extends Level
 		int pitProbability = (int)(Math.round(3*(1.0/Math.pow(modifier,4)))) + 1;
 		int pitWidth = (int)(Math.round(2*modifier)) + 2; // cannot exceed min pad length
 		
+		// to fix an issue
+		if (pitProbability < 1) { pitProbability = 1; }
+		
 		// find location to create pit
 		for (int x = zoneStart; x < zoneStart + length; x++) {
 			if (random.nextInt(pitProbability) == 0) {
