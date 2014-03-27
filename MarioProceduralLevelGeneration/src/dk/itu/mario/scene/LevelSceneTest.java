@@ -1,10 +1,10 @@
 package dk.itu.mario.scene;
 import java.awt.GraphicsConfiguration;
 import java.io.DataInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
-
 
 import dk.itu.mario.level.BgLevelGenerator;
 import dk.itu.mario.MarioInterface.GamePlay;
@@ -16,7 +16,6 @@ import dk.itu.mario.engine.sprites.Mushroom;
 import dk.itu.mario.engine.sprites.Particle;
 import dk.itu.mario.engine.sprites.Sprite;
 import dk.itu.mario.engine.util.FileHandler;
-
 import dk.itu.mario.engine.Art;
 import dk.itu.mario.engine.BgRenderer;
 import dk.itu.mario.engine.DataRecorder;
@@ -60,8 +59,14 @@ import dk.itu.mario.res.ResourcesManager;
 		        if(level==null)
 		        	if(isCustom){
 		        		MyLevelGenerator clg = new MyLevelGenerator();
-		        		GamePlay gp = new GamePlay();
-		        		gp = gp.read("player.txt");
+		        		GamePlay gp = null; 
+		        		
+		        		File playertxt = new File("player.txt");
+		        		
+		        		if (playertxt.exists()) {
+			        		gp = GamePlay.read("player.txt");
+		        		}
+		        		
 		        		currentLevel = (Level)clg.generateLevel(gp);
 		        		
 		        		//You can use the following commands if you want to benefit from

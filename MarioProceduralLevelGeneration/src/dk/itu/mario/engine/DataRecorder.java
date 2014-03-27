@@ -846,10 +846,10 @@ public class DataRecorder {
 			String name = scan.nextLine();
 			System.out.println();
 			gpm.write("training/" + name, true);
-		} else {
+		} /* else {
 			int type = PlayerClassifier.classify(gpm);
-			System.out.printf("Player is a(n): %s\n", PlayerClassifier.PLAYER_TYPES[type]);
-		}
+			System.out.printf("Player is a(n): %s\n", PlayerClassifier.PLAYER_TYPES[type].toUpperCase());
+		} */
 		
 		System.out.println(detailedLog);
 		write(detailedLog);

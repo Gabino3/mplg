@@ -7,9 +7,9 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-import dk.itu.mario.MarioInterface.Constraints;
 import dk.itu.mario.MarioInterface.GamePlay;
 import dk.itu.mario.MarioInterface.LevelInterface;
+import dk.itu.mario.ai.PlayerClassifier;
 import dk.itu.mario.engine.sprites.SpriteTemplate;
 import dk.itu.mario.engine.sprites.Enemy;
 
@@ -40,6 +40,8 @@ public class MyLevel extends Level
 	// storage
 	private int[][] blocks;
 
+	private int playerClass;
+	
 	private static Random levelSeedRandom = new Random();
 	public static long lastSeed;
 
@@ -52,10 +54,20 @@ public class MyLevel extends Level
 
 	public MyLevel(int width, int height) {
 		super(width, height);
+		playerClass = PlayerClassifier.PLAYER_DEFAULT;
 	}
 
 	public MyLevel(int width, int height, long seed, int difficulty, int type, GamePlay playerMetrics) {
 		this(width, height);
+		
+		if (playerMetrics != null) {
+			playerClass = PlayerClassifier.classify(playerMetrics);
+			System.out.printf("\nPLAYER IS A(N): %s\n\n", PlayerClassifier.PLAYER_TYPES[playerClass].toUpperCase());
+		} else {
+			playerClass = PlayerClassifier.PLAYER_DEFAULT;
+			System.out.println("\nPLAYER IS A: DEFAULT\n");
+		}
+		
 		creat(seed, difficulty, type);
 	}
 
@@ -78,25 +90,57 @@ public class MyLevel extends Level
 		int length = 0;
 		length += buildStart(0, width);
 
-		double terrainModifier = randomMod();
-		double pitModifier = randomMod();
-		double hillModifier = randomMod();
-		double tubeModifier = randomMod();
-		double cannonModifier = randomMod();
-		double boxModifier = randomMod();
-		double coinModifier = randomMod();
-		double powerModifier = randomMod();
-		double enemyModifier = randomMod();
+		double terrainModifier = 0.5;
+		double pitModifier = 0.5;
+		double hillModifier = 0.5;
+		double tubeModifier = 0.5;
+		double cannonModifier = 0.5;
+		double boxModifier = 0.5;
+		double coinModifier = 0.5;
+		double powerModifier = 0.5;
+		double enemyModifier = 0.5;
 		
-		/*double terrainModifier 	= 0.5;
-		double pitModifier 		= 0.5;
-		double hillModifier 	= 0.5;
-		double tubeModifier 	= 0.5;
-		double cannonModifier 	= 0.5;
-		double boxModifier	 	= 0.5;
-		double coinModifier 	= 0.5;
-		double powerModifier	= 0.5;
-		double enemyModifier 	= 0.2;*/
+		if (playerClass == PlayerClassifier.PLAYER_EXPLORER) {
+			terrainModifier	= 0.2;
+			pitModifier		= 0.2;
+			hillModifier	= 0.4;
+			tubeModifier	= 0;
+			cannonModifier	= 0;
+			boxModifier		= 1;
+			coinModifier	= 0.7;
+			powerModifier	= 0.7;
+			enemyModifier	= 0;
+		} else if (playerClass == PlayerClassifier.PLAYER_KILLER) {
+			terrainModifier	= 0.5;
+			pitModifier		= 0.5;
+			hillModifier	= 0.5;
+			tubeModifier	= 0.5;
+			cannonModifier	= 0.7;
+			boxModifier		= 0.5;
+			coinModifier	= 0.5;
+			powerModifier	= 0.5;
+			enemyModifier	= 0.8;
+		} else if (playerClass == PlayerClassifier.PLAYER_SPEED_RUNNER) {
+			terrainModifier	= 1;
+			pitModifier		= 0.6;
+			hillModifier	= 1;
+			tubeModifier	= 0;
+			cannonModifier	= 0;
+			boxModifier		= 0;
+			coinModifier	= 0;
+			powerModifier	= 0;
+			enemyModifier	= 0;
+		} else if (playerClass == PlayerClassifier.PLAYER_NOOB) {
+			terrainModifier	= 0.2;
+			pitModifier		= 0.2;
+			hillModifier	= 0.2;
+			tubeModifier	= 0.2;
+			cannonModifier	= 0;
+			boxModifier		= 0.2;
+			coinModifier	= 0.2;
+			powerModifier	= 0.7;
+			enemyModifier	= 0.2;
+		}
 		
 		System.out.printf("Modifiers:\n----------------\n" + 
 				"ter :\t%f\n" +

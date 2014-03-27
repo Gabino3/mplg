@@ -17,6 +17,7 @@ import org.encog.ml.svm.training.SVMSearchTrain;
 import org.encog.ml.train.MLTrain;
 
 import dk.itu.mario.MarioInterface.GamePlay;
+import dk.itu.mario.engine.sprites.SpriteTemplate;
 
 public class PlayerClassifier
 {
@@ -26,6 +27,7 @@ public class PlayerClassifier
 	public final static int MAX_TRAINING_ITERATIONS = 500;
 	
 	public final static String[] PLAYER_TYPES = { "Explorer", "Killer", "Speed Runner", "Noob" };
+	public final static int PLAYER_DEFAULT = -1;
 	public final static int PLAYER_EXPLORER = 0;
 	public final static int PLAYER_KILLER = 1;
 	public final static int PLAYER_SPEED_RUNNER = 2;
@@ -37,66 +39,86 @@ public class PlayerClassifier
 	public static int classify(GamePlay gpmTest) {
 		int classification = 0;
 		
-		// retrieve training data files
-		File trainingDir = new File("training/");
-		File[] trainingFiles = trainingDir.listFiles(new FilenameFilter() {
-			@Override
-		    public boolean accept(File dir, String name) {
-				name = name.toLowerCase();
-		        boolean txt = name.endsWith(".txt");
-		        boolean test = name.startsWith("e") || name.startsWith("k") || name.startsWith("sr");
-		        return txt && test;
-		    }
-		});
-		
-		double trainingInput[][] = new double[trainingFiles.length][NUM_ATTRIB];
-		double idealOutput[][] = new double[trainingFiles.length][NUM_CLASSIFICATIONS];
-		
-		// retrieve training data from files
-		for (int i = 0; i < trainingFiles.length; i++) {
-			File f = trainingFiles[i];
-			String name = f.getName().toLowerCase();
-			GamePlay gpmTraining = GamePlay.read(f.toString());
+		if (!isNoob(gpmTest)) {
+				
+			// retrieve training data files
+			File trainingDir = new File("training/");
+			File[] trainingFiles = trainingDir.listFiles(new FilenameFilter() {
+				@Override
+			    public boolean accept(File dir, String name) {
+					name = name.toLowerCase();
+			        boolean txt = name.endsWith(".txt");
+			        boolean test = name.startsWith("e") || name.startsWith("k") || name.startsWith("sr");
+			        return txt && test;
+			    }
+			});
 			
-			// generate ideal trial results
-			if (name.startsWith("e")) {
-				idealOutput[i][0] = PLAYER_EXPLORER;
-			} else if (name.startsWith("k")) {
-				idealOutput[i][0] = PLAYER_KILLER;
-			} else if (name.startsWith("sr")) {
-				idealOutput[i][0] = PLAYER_SPEED_RUNNER;
-			} else if (name.startsWith("n")) {
-				// TODO actually implement noob
-				idealOutput[i][0] = PLAYER_NOOB;
-			} else {
-				System.out.println("ERROR! ABORT!");
+			double trainingInput[][] = new double[trainingFiles.length][NUM_ATTRIB];
+			double idealOutput[][] = new double[trainingFiles.length][NUM_CLASSIFICATIONS];
+			
+			// retrieve training data from files
+			for (int i = 0; i < trainingFiles.length; i++) {
+				File f = trainingFiles[i];
+				String name = f.getName().toLowerCase();
+				GamePlay gpmTraining = GamePlay.read(f.toString());
+				
+				// generate ideal trial results
+				if (name.startsWith("e")) {
+					idealOutput[i][0] = PLAYER_EXPLORER;
+				} else if (name.startsWith("k")) {
+					idealOutput[i][0] = PLAYER_KILLER;
+				} else if (name.startsWith("sr")) {
+					idealOutput[i][0] = PLAYER_SPEED_RUNNER;
+				} else {
+					System.out.println("ERROR! ABORT!");
+				}
+				
+				// retrieve and normalize trial data
+				List<Double> input = getTrialData(gpmTraining);
+				Double max = Double.MIN_VALUE;
+				for (Double d : input) {
+					if (d > max) { max = d; }
+				}
+				for (int j = 0; j < NUM_ATTRIB; j++) {
+					trainingInput[i][j] = input.get(j)/max;
+				}
+				
+				System.out.println(Arrays.toString(trainingInput[i]));
 			}
 			
-			// retrieve and normalize trial data
-			List<Double> input = getTrialData(gpmTraining);
-			Double max = Double.MIN_VALUE;
-			for (Double d : input) {
-				if (d > max) { max = d; }
-			}
-			for (int j = 0; j < NUM_ATTRIB; j++) {
-				trainingInput[i][j] = input.get(j)/max;
-			}
+			// use training data to develop network and classify player
+			trainNetwork(trainingInput, idealOutput);
+			classification = getClassification(gpmTest);
 			
-			System.out.println(Arrays.toString(trainingInput[i]));
+			Encog.getInstance().shutdown();
+			
+			return classification;
 		}
 		
-		// use training data to develop network and classify player
-		trainNetwork(trainingInput, idealOutput);
-		classification = getClassification(gpmTest);
+		return PLAYER_NOOB;
+	}
+	
+	private static boolean isNoob(GamePlay gpm) {
+		int deaths = 0;
 		
-		Encog.getInstance().shutdown();
+		deaths += gpm.timesOfDeathByFallingIntoGap;
+		deaths += gpm.timesOfDeathByRedTurtle;
+		deaths += gpm.timesOfDeathByGreenTurtle;
+		deaths += gpm.timesOfDeathByGoomba;
+		deaths += gpm.timesOfDeathByArmoredTurtle;
+		deaths += gpm.timesOfDeathByJumpFlower;
+		deaths += gpm.timesOfDeathByCannonBall;
+		deaths += gpm.timesOfDeathByChompFlower;
 		
-		return classification;
+		System.out.println("PLAYER NOOB TEST: " + deaths);
+		
+		return (deaths == 1);
 	}
 	
 	private static List<Double> getTrialData(GamePlay gpm) {
 		ArrayList<Double> input = new ArrayList<Double>();
 		
+		input.add((double) gpm.timeRunningLeft);
 		input.add((double) gpm.timeRunningRight);
 		input.add((double) gpm.kickedShells);
 		input.add((double) gpm.enemyKillByFire);
