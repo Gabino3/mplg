@@ -88,6 +88,16 @@ public class MyLevel extends Level
 		double powerModifier = randomMod();
 		double enemyModifier = randomMod();
 		
+		/*double terrainModifier 	= 0.5;
+		double pitModifier 		= 0.5;
+		double hillModifier 	= 0.5;
+		double tubeModifier 	= 0.5;
+		double cannonModifier 	= 0.5;
+		double boxModifier	 	= 0.5;
+		double coinModifier 	= 0.5;
+		double powerModifier	= 0.5;
+		double enemyModifier 	= 0.2;*/
+		
 		System.out.printf("Modifiers:\n----------------\n" + 
 				"ter :\t%f\n" +
 				"pit :\t%f\n" +
@@ -173,9 +183,7 @@ public class MyLevel extends Level
 	}
 	
 	private double randomMod() {
-		//return (random.nextDouble()*30+20)/100;
-		//return random.nextDouble();
-		return 0.5;
+		return random.nextDouble();
 	}
 
 	/*

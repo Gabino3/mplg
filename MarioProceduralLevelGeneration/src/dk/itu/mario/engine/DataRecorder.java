@@ -19,7 +19,7 @@ import dk.itu.mario.engine.sprites.FlowerEnemy;
 
 public class DataRecorder {
 
-	private boolean dataTrain = false;
+	private boolean dataTrain = true;
 	public boolean recording = true;
 	private RandomLevel level;
 	private boolean []keys, keyPressed;
@@ -815,7 +815,7 @@ public class DataRecorder {
 		gpm.totalTimeLittleMode = getTotalLittleTime();
 		gpm.totalTimeLargeMode = getTotalLargeTime();//Time Spent Being Large Mario
 		gpm.totalTimeFireMode = getTotalFireTime();//Time Spent Being Fire Mario
-		gpm.timesSwichingPower = getSwitchedPower();//Number of Times Switched Between Little, Large or Fire Mario
+		gpm.timesSwitchingPower = getSwitchedPower();//Number of Times Switched Between Little, Large or Fire Mario
 		gpm.aimlessJumps = J();//aimless jumps
 		gpm.percentageBlocksDestroyed = nb();//percentage of all blocks destroyed
 		gpm.percentageCoinBlocksDestroyed = ncb();//percentage of coin blocks destroyed
@@ -839,6 +839,7 @@ public class DataRecorder {
 		gpm.ChompFlowersKilled = kills[SpriteTemplate.CHOMP_FLOWER];
 		gpm.write("player", false);
 		
+		// TODO keep working on this
 		if (dataTrain) {
 			System.out.println("\n:: ENTER NAME OF FILE ::");
 			Scanner scan = new Scanner(System.in);

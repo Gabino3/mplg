@@ -20,9 +20,10 @@ import dk.itu.mario.MarioInterface.GamePlay;
 
 public class PlayerClassifier
 {
-	public final static int NUM_ATTRIB = 14;
+	public final static int NUM_ATTRIB = 12;
 	public final static int NUM_CLASSIFICATIONS = 1;
-	public final static double TRAINING_ERROR_TOLERANCE = 0.05;
+	public final static double TRAINING_ERROR_GOAL = 0.01;
+	public final static int MAX_TRAINING_ITERATIONS = 500;
 	
 	public final static String[] PLAYER_TYPES = { "Explorer", "Killer", "Speed Runner", "Noob" };
 	public final static int PLAYER_EXPLORER = 0;
@@ -96,8 +97,6 @@ public class PlayerClassifier
 	private static List<Double> getTrialData(GamePlay gpm) {
 		ArrayList<Double> input = new ArrayList<Double>();
 		
-		input.add((double) gpm.completionTime);
-		input.add((double) gpm.timesPressedRun);
 		input.add((double) gpm.timeRunningRight);
 		input.add((double) gpm.kickedShells);
 		input.add((double) gpm.enemyKillByFire);
@@ -125,7 +124,7 @@ public class PlayerClassifier
 			train.iteration();
 			System.out.println("Epoch #" + epoch + " Error:" + train.getError());
 			epoch++;
-		} while(train.getError() > TRAINING_ERROR_TOLERANCE);
+		} while(train.getError() > TRAINING_ERROR_GOAL && epoch <= MAX_TRAINING_ITERATIONS);
 		train.finishTraining();
 		
 		// DEBUG: show training results on test data

@@ -2,11 +2,11 @@ package dk.itu.mario.MarioInterface;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.Random;
 
 public class GamePlay implements Serializable {
 		
@@ -31,7 +31,7 @@ public class GamePlay implements Serializable {
 	public int totalTimeLittleMode; //total time spent in little mode
 	public int totalTimeLargeMode; //total time spent in large mode
 	public int totalTimeFireMode; //total time spent in fire mode
-	public int timesSwichingPower; //number of Times Switched Between Little, Large or Fire Mario
+	public int timesSwitchingPower; //number of Times Switched Between Little, Large or Fire Mario
 	public double aimlessJumps; //number of jumps without a reason
 	public double percentageBlocksDestroyed; //percentage of all blocks destroyed
 	public double percentageCoinBlocksDestroyed; //percentage of coin blocks destroyed
@@ -60,6 +60,7 @@ public class GamePlay implements Serializable {
 	
 	public void write(String name, boolean trainingData){
 		ObjectOutputStream out = null;
+		Random random = new Random();
 		try {
 			String fileName = name + ".txt";
 			
@@ -67,10 +68,10 @@ public class GamePlay implements Serializable {
 				System.out.println(fileName);
 				
 				File f = new File(fileName);
-				int num = 0;
+				int num;
 				
 				while (f.exists()) {
-					num++;
+					num = random.nextInt(Integer.MAX_VALUE);
 					fileName = name + num + ".txt";
 					f = new File(fileName);
 				}
