@@ -35,8 +35,8 @@ public class GamePlay implements Serializable {
 	public double aimlessJumps; //number of jumps without a reason
 	public double percentageBlocksDestroyed; //percentage of all blocks destroyed
 	public double percentageCoinBlocksDestroyed; //percentage of coin blocks destroyed
-	public double percentageEmptyBlockesDestroyed; //percentage of empty blocks destroyed
-	public double percentagePowerBlockDestroyed; //percentage of power blocks destroyed
+	public double percentageEmptyBlocksDestroyed; //percentage of empty blocks destroyed
+	public double percentagePowerBlocksDestroyed; //percentage of power blocks destroyed
 	public double timesOfDeathByFallingIntoGap; //number of death by falling into a gap
 	public int totalEnemies; //total number of enemies
 	public int totalEmptyBlocks; //total number of empty blocks

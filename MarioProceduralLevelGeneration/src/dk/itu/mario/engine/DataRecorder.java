@@ -6,20 +6,20 @@ import java.io.IOException;
 import java.util.Scanner;
 
 import dk.itu.mario.MarioInterface.GamePlay;
+import dk.itu.mario.ai.PlayerClassifier;
 import dk.itu.mario.engine.sprites.SpriteTemplate;
 import dk.itu.mario.engine.sprites.BulletBill;
 import dk.itu.mario.engine.sprites.Enemy;
 import dk.itu.mario.engine.sprites.Mario;
 import dk.itu.mario.engine.sprites.Shell;
 import dk.itu.mario.engine.sprites.Sprite;
-import dk.itu.mario.level.Level;
 import dk.itu.mario.level.RandomLevel;
 import dk.itu.mario.scene.LevelScene;
 import dk.itu.mario.engine.sprites.FlowerEnemy;
 
 public class DataRecorder {
 
-	private boolean dataTrain = true;
+	private boolean dataTrain = false;
 	public boolean recording = true;
 	private RandomLevel level;
 	private boolean []keys, keyPressed;
@@ -819,8 +819,8 @@ public class DataRecorder {
 		gpm.aimlessJumps = J();//aimless jumps
 		gpm.percentageBlocksDestroyed = nb();//percentage of all blocks destroyed
 		gpm.percentageCoinBlocksDestroyed = ncb();//percentage of coin blocks destroyed
-		gpm.percentageEmptyBlockesDestroyed = neb();//percentage of empty blocks destroyed
-		gpm.percentagePowerBlockDestroyed = np();//percentage of power blocks destroyed
+		gpm.percentageEmptyBlocksDestroyed = neb();//percentage of empty blocks destroyed
+		gpm.percentagePowerBlocksDestroyed = np();//percentage of power blocks destroyed
 		gpm.timesOfDeathByFallingIntoGap = dg();//number of death by falling into a gap
 		gpm.timesOfDeathByRedTurtle = deaths[SpriteTemplate.RED_TURTLE];
 		gpm.timesOfDeathByGreenTurtle = deaths[SpriteTemplate.GREEN_TURTLE];
@@ -845,6 +845,9 @@ public class DataRecorder {
 			String name = scan.nextLine();
 			System.out.println();
 			gpm.write("training/" + name, true);
+		} else {
+			int type = PlayerClassifier.classify(gpm);
+			System.out.printf("Player is a(n): %s\n", PlayerClassifier.PLAYER_TYPES[type]);
 		}
 		
 		System.out.println(detailedLog);
