@@ -3,6 +3,7 @@ package dk.itu.mario.engine;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Scanner;
 
 import dk.itu.mario.MarioInterface.GamePlay;
 import dk.itu.mario.engine.sprites.SpriteTemplate;
@@ -11,7 +12,6 @@ import dk.itu.mario.engine.sprites.Enemy;
 import dk.itu.mario.engine.sprites.Mario;
 import dk.itu.mario.engine.sprites.Shell;
 import dk.itu.mario.engine.sprites.Sprite;
-
 import dk.itu.mario.level.Level;
 import dk.itu.mario.level.RandomLevel;
 import dk.itu.mario.scene.LevelScene;
@@ -19,6 +19,7 @@ import dk.itu.mario.engine.sprites.FlowerEnemy;
 
 public class DataRecorder {
 
+	private boolean dataTrain = true;
 	public boolean recording = true;
 	private RandomLevel level;
 	private boolean []keys, keyPressed;
@@ -836,7 +837,16 @@ public class DataRecorder {
 		gpm.JumpFlowersKilled = kills[SpriteTemplate.JUMP_FLOWER];
 		gpm.CannonBallKilled = kills[SpriteTemplate.CANNON_BALL];
 		gpm.ChompFlowersKilled = kills[SpriteTemplate.CHOMP_FLOWER];
-		gpm.write("player.txt");
+		gpm.write("player", false);
+		
+		if (dataTrain) {
+			System.out.println("\n:: ENTER NAME OF FILE ::");
+			Scanner scan = new Scanner(System.in);
+			String name = scan.nextLine();
+			System.out.println();
+			gpm.write("training/" + name, true);
+		}
+		
 		System.out.println(detailedLog);
 		write(detailedLog);
 	}

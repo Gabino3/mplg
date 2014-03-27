@@ -58,9 +58,24 @@ public class GamePlay implements Serializable {
 	public int JumpFlowersKilled; //number of Jump Flower Mario killed
 	public int ChompFlowersKilled; //number of Chomp Flower Mario killed
 	
-	public void write(String fileName){
+	public void write(String name, boolean trainingData){
 		ObjectOutputStream out = null;
 		try {
+			String fileName = name + ".txt";
+			
+			if (trainingData) {
+				System.out.println(fileName);
+				
+				File f = new File(fileName);
+				int num = 0;
+				
+				while (f.exists()) {
+					num++;
+					fileName = name + num + ".txt";
+					f = new File(fileName);
+				}
+			}
+			
 			FileOutputStream fos = new FileOutputStream(fileName);
 			out =  new ObjectOutputStream(fos);
 			out.writeObject(this);
