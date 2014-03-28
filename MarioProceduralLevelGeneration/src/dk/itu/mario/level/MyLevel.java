@@ -141,7 +141,7 @@ public class MyLevel extends Level
 			powerModifier	= 0.7;
 			enemyModifier	= 0.2;
 		}
-		
+	/*	
 		System.out.printf("Modifiers:\n----------------\n" + 
 				"ter :\t%f\n" +
 				"pit :\t%f\n" +
@@ -161,7 +161,7 @@ public class MyLevel extends Level
 				boxModifier,
 				coinModifier,
 				powerModifier,
-				enemyModifier);
+				enemyModifier);*/
 		//TODO
 		buildTerrain(length, width-length-12, terrainModifier); // 12 = 8 for end + gap
 		addPits(length, width-length-12, pitModifier);
@@ -700,8 +700,8 @@ public class MyLevel extends Level
 	private int addCannons(int zoneStart, int maxLength, double modifier) {
 		//TODO - make them always vary in height when next to each other
 		int length = maxLength;
-		System.out.println("Building Cannons:\n-----------------");
-		System.out.println(" # | Height | Last Height ");
+		//System.out.println("Building Cannons:\n-----------------");
+		//System.out.println(" # | Height | Last Height ");
 		int cannonsBuilt = 0;
 		int cannonAttempts = (int)(Math.round(modifier*maxLength)/5);
 		int lastCannonHeight = 0;
@@ -769,16 +769,17 @@ public class MyLevel extends Level
 				surfaces.add(new Surface(cannonX, cannon.height(), 1, CANNON));
 				
 				cannonsBuilt++;
+			/*
 				if(cannonsBuilt < 10){
 					System.out.println(String.format(" %d  |   %d   | %d ", cannonsBuilt, cannon.height(), lastCannonHeight));
 				} else {
 					System.out.println(String.format(" %d |   %d   | %d ", cannonsBuilt, cannon.height(), lastCannonHeight));
 				}
-				
+			*/	
 				lastCannonHeight = cannon.height();
 			}
 		}
-		System.out.println("-----------------");
+		//System.out.println("-----------------");
 		return length;
 	}
 	
@@ -856,7 +857,7 @@ public class MyLevel extends Level
 	private int addBoxes(int zoneStart, int maxLength, double modifier, double coinMod, double powerMod) {
 		int length = maxLength;
 		int boxAttempts = (int)(Math.round(modifier*maxLength));
-		System.out.printf("Attempts: %d\n", boxAttempts);
+		//System.out.printf("Attempts: %d\n", boxAttempts);
 		int[] usedX = new int[maxLength-zoneStart];
 		int numUsed = 0;
 		for (int att = 0; att < boxAttempts; att++) {
@@ -928,8 +929,8 @@ public class MyLevel extends Level
 			}
 		}
 		
-		System.out.println(Arrays.toString(usedX));
-		System.out.println(numUsed);
+	//	System.out.println(Arrays.toString(usedX));
+	//	System.out.println(numUsed);
 		Set<Integer> mySet = new HashSet (Arrays.asList(usedX));
 		int temp = 0;
 		for (int i = 0; i < usedX.length; i++) {
@@ -937,7 +938,7 @@ public class MyLevel extends Level
 				temp++;
 		}
 		
-		System.out.println(mySet.size() == usedX.length-temp);
+	//	System.out.println(mySet.size() == usedX.length-temp);
 		return length;
 	}
 	
