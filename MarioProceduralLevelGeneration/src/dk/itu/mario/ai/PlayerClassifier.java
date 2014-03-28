@@ -82,8 +82,6 @@ public class PlayerClassifier
 				for (int j = 0; j < NUM_ATTRIB; j++) {
 					trainingInput[i][j] = input.get(j)/max;
 				}
-				
-				System.out.println(Arrays.toString(trainingInput[i]));
 			}
 			
 			// use training data to develop network and classify player
@@ -110,16 +108,14 @@ public class PlayerClassifier
 		deaths += gpm.timesOfDeathByCannonBall;
 		deaths += gpm.timesOfDeathByChompFlower;
 		
-		System.out.println("PLAYER NOOB TEST: " + deaths);
-		
 		return (deaths == 1);
 	}
 	
 	private static List<Double> getTrialData(GamePlay gpm) {
 		ArrayList<Double> input = new ArrayList<Double>();
 		
-		input.add((double) gpm.timeRunningLeft);
-		input.add((double) gpm.timeRunningRight);
+		input.add((double) gpm.timeRunningLeft/gpm.completionTime);
+		input.add((double) gpm.timeRunningRight/gpm.completionTime);
 		input.add((double) gpm.kickedShells);
 		input.add((double) gpm.enemyKillByFire);
 		input.add((double) gpm.enemyKillByKickingShell);
@@ -144,17 +140,18 @@ public class PlayerClassifier
 		int epoch = 1;
 		do {
 			train.iteration();
-			System.out.println("Epoch #" + epoch + " Error:" + train.getError());
+			//System.out.println("Epoch #" + epoch + " Error:" + train.getError());
 			epoch++;
 		} while(train.getError() > TRAINING_ERROR_GOAL && epoch <= MAX_TRAINING_ITERATIONS);
 		train.finishTraining();
 		
-		// DEBUG: show training results on test data
+	/*	// DEBUG: show training results on test data
 		System.out.println("Neural Network Results:");
 		for(MLDataPair pair: trainingSet ) {
 			final MLData output = svm.compute(pair.getInput());
 			System.out.println("actual=" + output.getData(0) + ",ideal=" + pair.getIdeal().getData(0));
 		}
+		*/
 	}
 	
 	private static int getClassification(GamePlay gpm) {
