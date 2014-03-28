@@ -119,7 +119,7 @@ public class MyLevel extends Level
 			boxModifier		= 0.5;
 			coinModifier	= 0.5;
 			powerModifier	= 0.5;
-			enemyModifier	= 0.8;
+			enemyModifier	= 1;
 		} else if (playerClass == PlayerClassifier.PLAYER_SPEED_RUNNER) {
 			terrainModifier	= 1;
 			pitModifier		= 0.6;
